@@ -6,34 +6,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 :root{--green:#198754;--orange:#ff8c00;--dark:#0f2a44;}
-body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;}
 header{background:var(--dark);color:#fff;padding:15px;text-align:center;}
 header div:first-child{font-size:24px;font-weight:bold;}
 header div:last-child{font-size:14px;color:#fff;opacity:0.85;}
-nav{display:none;gap:5px;background:var(--orange);padding:8px;flex-wrap:wrap}
-nav button{flex:1;border:none;padding:10px;color:#fff;border-radius:6px;font-size:15px;cursor:pointer;margin:2px}
-nav button.active{background:var(--green)}
-section{display:none;padding:15px}
-input,textarea,select,button{width:100%;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #ccc}
-button{background:var(--green);color:#fff;font-weight:bold;cursor:pointer}
-.card{background:#fff;border-radius:10px;padding:10px;margin:10px 0;box-shadow:0 2px 5px rgba(0,0,0,.1)}
-.price{font-size:20px;color:var(--orange);font-weight:bold;margin-top:4px}
-.badge{display:inline-block;background:var(--orange);color:#000;padding:3px 6px;border-radius:4px;font-size:12px;margin-left:4px}
+nav{display:none;gap:5px;background:var(--orange);padding:8px;flex-wrap:wrap;}
+nav button{flex:1;border:none;padding:10px;color:#fff;border-radius:6px;font-size:15px;cursor:pointer;margin:2px;}
+nav button.active{background:var(--green);}
+section{display:none;padding:15px;}
+input,textarea,select,button{width:100%;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #ccc;}
+button{background:var(--green);color:#fff;font-weight:bold;cursor:pointer;}
+.card{background:#fff;border-radius:10px;padding:10px;margin:10px 0;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+.badge{display:inline-block;background:var(--orange);color:#000;padding:3px 6px;border-radius:4px;font-size:12px;margin-left:4px;}
 .locked{opacity:0.6;pointer-events:none;}
-.quiz-question{margin-top:10px;padding:10px;border:1px solid #ccc;border-radius:6px;background:#fff;}
-.correct{background:#198754;color:#fff;}
-.wrong{background:#dc3545;color:#fff;}
-img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px;background:#eee;}
+img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px;background:#eee;margin-top:10px;}
 </style>
 </head>
 <body>
 
 <header>
   <div>HB Skills Academy ULTRA</div>
-  <div>Learn Anytime, Anywhere</div>
+  <div>User Portal</div>
 </header>
 
-<!-- Authentication -->
+<!-- Auth -->
 <section id="authBox">
   <h3>Register / Login</h3>
   <input id="fullName" placeholder="Full Name">
@@ -60,13 +56,13 @@ img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px
   <button id="logout">Logout</button>
 </nav>
 
-<!-- Courses Section -->
+<!-- Courses -->
 <section id="courses">
   <h3>Available Courses</h3>
   <div id="coursesList"></div>
 </section>
 
-<!-- Enrollment Section -->
+<!-- Enrollments -->
 <section id="enrollments">
   <h3>Enroll in a Course</h3>
   <select id="courseSelect">
@@ -79,7 +75,7 @@ img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px
   <div id="myEnrollments"></div>
 </section>
 
-<!-- Profile Section -->
+<!-- Profile -->
 <section id="profile">
   <h3>Profile</h3>
   <input id="nameInput" placeholder="Full Name">
@@ -95,14 +91,6 @@ img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px
   <button id="saveProfile">Save Profile</button>
 </section>
 
-<!-- Lessons Section -->
-<section id="lessons">
-  <h3 id="lessonTitle">Lesson Title</h3>
-  <div id="lessonContent"></div>
-  <div id="quizContainer"></div>
-  <button id="nextLessonBtn">Next Lesson</button>
-</section>
-
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -110,76 +98,68 @@ img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
 <script>
+// Firebase Init
 firebase.initializeApp({
   apiKey:"AIzaSyDhRFgn7nXoZlRf-GX7XakwUYrEMFZDgrI",
   authDomain:"pa-mwera.firebaseapp.com",
   projectId:"pa-mwera",
   storageBucket:"pa-mwera.appspot.com"
 });
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+const auth=firebase.auth();
+const db=firebase.firestore();
+const storage=firebase.storage();
 
 /* Elements */
-const authBox = document.getElementById("authBox");
-const nav = document.getElementById("nav");
-const fullName = document.getElementById("fullName");
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const phone = document.getElementById("phone");
-const country = document.getElementById("country");
-const occupation = document.getElementById("occupation");
-const gender = document.getElementById("gender");
-
-const coursesList = document.getElementById("coursesList");
-const courseSelect = document.getElementById("courseSelect");
-const paymentMethod = document.getElementById("paymentMethod");
-const paymentProof = document.getElementById("paymentProof");
-const myEnrollments = document.getElementById("myEnrollments");
-
-const nameInput = document.getElementById("nameInput");
-const phoneInput = document.getElementById("phoneInput");
-const countryInput = document.getElementById("countryInput");
-const occupationInput = document.getElementById("occupationInput");
-const genderInput = document.getElementById("genderInput");
-
-const lessonsSection = document.getElementById("lessons");
-const lessonTitle = document.getElementById("lessonTitle");
-const lessonContent = document.getElementById("lessonContent");
-const quizContainer = document.getElementById("quizContainer");
-const nextLessonBtn = document.getElementById("nextLessonBtn");
+const authBox=document.getElementById("authBox");
+const nav=document.getElementById("nav");
+const fullName=document.getElementById("fullName");
+const email=document.getElementById("email");
+const password=document.getElementById("password");
+const phone=document.getElementById("phone");
+const country=document.getElementById("country");
+const occupation=document.getElementById("occupation");
+const gender=document.getElementById("gender");
+const coursesList=document.getElementById("coursesList");
+const courseSelect=document.getElementById("courseSelect");
+const paymentMethod=document.getElementById("paymentMethod");
+const paymentProof=document.getElementById("paymentProof");
+const myEnrollments=document.getElementById("myEnrollments");
+const nameInput=document.getElementById("nameInput");
+const phoneInput=document.getElementById("phoneInput");
+const countryInput=document.getElementById("countryInput");
+const occupationInput=document.getElementById("occupationInput");
+const genderInput=document.getElementById("genderInput");
 
 /* NAVIGATION */
 function show(id){
   document.querySelectorAll("section").forEach(s=>s.style.display="none");
   document.getElementById(id).style.display="block";
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  const btn = document.querySelector(`nav button[data-tab="${id}"]`);
+  const btn=document.querySelector(`nav button[data-tab="${id}"]`);
   if(btn) btn.classList.add("active");
 }
 document.querySelectorAll("nav button[data-tab]").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
 /* REGISTER & LOGIN */
-document.getElementById("registerBtn").onclick = async ()=>{
-  if(!fullName.value || !email.value || !password.value || !phone.value || !country.value || !occupation.value || !gender.value){
+document.getElementById("registerBtn").onclick=async()=>{
+  if(!fullName.value||!email.value||!password.value||!phone.value||!country.value||!occupation.value||!gender.value){
     return alert("Fill all fields");
   }
   const c = await auth.createUserWithEmailAndPassword(email.value,password.value);
   await db.collection("users").doc(c.user.uid).set({
-    fullName: fullName.value,
-    phone: phone.value,
-    country: country.value,
-    occupation: occupation.value,
-    gender: gender.value,
-    role: "student",
-    createdAt: Date.now()
+    fullName:fullName.value,
+    phone:phone.value,
+    country:country.value,
+    occupation:occupation.value,
+    gender:gender.value,
+    role:"student",
+    createdAt:Date.now()
   });
   alert("Registered! Login now.");
 };
-document.getElementById("loginBtn").onclick = ()=> auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
+document.getElementById("loginBtn").onclick=()=>auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
 
-document.getElementById("logout").onclick = ()=>auth.signOut();
+document.getElementById("logout").onclick=()=>auth.signOut();
 
 /* AUTH STATE */
 auth.onAuthStateChanged(async user=>{
@@ -199,122 +179,80 @@ auth.onAuthStateChanged(async user=>{
 
 /* LOAD COURSES */
 async function loadCourses(){
-  const snap = await db.collection("courses").get();
-  coursesList.innerHTML = "";
-  courseSelect.innerHTML = '<option value="">Select Course</option>';
+  const snap=await db.collection("courses").get();
+  coursesList.innerHTML="";
+  courseSelect.innerHTML='<option value="">Select Course</option>';
   snap.forEach(doc=>{
-    const d = doc.data();
-    coursesList.innerHTML += `<div class="card">
-      <h4>${d.title}</h4>
-      <p>${d.description}</p>
-      <div>${d.lessons.length} Lessons</div>
-      <div>Status: <span class="badge locked">Trial Only</span></div>
-    </div>`;
-    courseSelect.innerHTML += `<option value="${doc.id}">${d.title}</option>`;
+    const d=doc.data();
+    coursesList.innerHTML+=`<div class="card"><h4>${d.title}</h4><p>${d.description}</p><div>Price: K${d.price||0}</div></div>`;
+    courseSelect.innerHTML+=`<option value="${doc.id}">${d.title}</option>`;
   });
 }
 
-/* ENROLL IN COURSE */
-document.getElementById("enrollBtn").onclick = async ()=>{
-  const user = auth.currentUser;
-  if(!user) return alert("Login first");
-  if(!courseSelect.value || !paymentMethod.value || paymentProof.files.length===0) return alert("Fill all fields and upload proof");
-  
-  // Upload proof
-  const file = paymentProof.files[0];
-  const proofRef = storage.ref().child(`paymentProofs/${user.uid}_${Date.now()}`);
-  const snap = await proofRef.put(file);
-  const proofURL = await snap.ref.getDownloadURL();
-  
-  await db.collection("enrollments").add({
-    userId: user.uid,
-    courseId: courseSelect.value,
-    paymentMethod: paymentMethod.value,
-    paymentProof: proofURL,
-    approved: false,
-    createdAt: Date.now()
-  });
-  alert("Enrollment request submitted! Wait for admin approval.");
-  paymentMethod.value=""; paymentProof.value="";
-  loadEnrollments();
+/* ENROLLMENT WITH PAYMENT PROOF */
+document.getElementById("enrollBtn").onclick=async()=>{
+  try{
+    const user=auth.currentUser;
+    if(!user) return alert("Login first");
+    if(!courseSelect.value||!paymentMethod.value||paymentProof.files.length===0)
+      return alert("Fill all fields and upload proof");
+
+    const file=paymentProof.files[0];
+    const ref=storage.ref(`paymentProofs/${user.uid}_${Date.now()}_${file.name}`);
+    const snap=await ref.put(file);
+    const url=await snap.ref.getDownloadURL();
+
+    await db.collection("enrollments").add({
+      userId:user.uid,
+      courseId:courseSelect.value,
+      paymentMethod:paymentMethod.value,
+      paymentProof:url,
+      approved:false,
+      createdAt:Date.now()
+    });
+    alert("Enrollment submitted! Wait for admin approval.");
+    paymentMethod.value=""; paymentProof.value="";
+    loadEnrollments();
+  }catch(e){console.error(e); alert("Error submitting enrollment.");}
 };
 
 /* LOAD USER ENROLLMENTS */
 async function loadEnrollments(){
-  const user = auth.currentUser;
-  const snap = await db.collection("enrollments").where("userId","==",user.uid).get();
-  myEnrollments.innerHTML = "";
+  const user=auth.currentUser;
+  const snap=await db.collection("enrollments").where("userId","==",user.uid).get();
+  myEnrollments.innerHTML="";
   snap.forEach(doc=>{
-    const d = doc.data();
-    const locked = d.approved?"" : "locked";
-    myEnrollments.innerHTML += `<div class="card ${locked}">
+    const d=doc.data();
+    const locked=d.approved?"":"locked";
+    myEnrollments.innerHTML+=`<div class="card ${locked}">
       <h4>Course ID: ${d.courseId}</h4>
-      <p>Payment Method: ${d.paymentMethod}</p>
-      <p>Status: ${d.approved?'<span class="badge verified">Approved</span>':'<span class="badge">Pending Approval</span>'}</p>
+      <p>Payment: ${d.paymentMethod}</p>
+      <p>Status: ${d.approved?'<span class="badge approved">Approved</span>':'<span class="badge pending">Pending Approval</span>'}</p>
+      <a href="${d.paymentProof}" target="_blank">View Proof</a>
     </div>`;
   });
 }
 
 /* PROFILE */
 async function loadProfile(){
-  const doc = await db.collection("users").doc(auth.currentUser.uid).get();
-  const d = doc.data();
-  nameInput.value = d.fullName || "";
-  phoneInput.value = d.phone || "";
-  countryInput.value = d.country || "";
-  occupationInput.value = d.occupation || "";
-  genderInput.value = d.gender || "";
+  const doc=await db.collection("users").doc(auth.currentUser.uid).get();
+  const d=doc.data();
+  nameInput.value=d.fullName||"";
+  phoneInput.value=d.phone||"";
+  countryInput.value=d.country||"";
+  occupationInput.value=d.occupation||"";
+  genderInput.value=d.gender||"";
 }
-document.getElementById("saveProfile").onclick = async ()=>{
-  const user = auth.currentUser;
+document.getElementById("saveProfile").onclick=async()=>{
+  const user=auth.currentUser;
   await db.collection("users").doc(user.uid).update({
-    fullName: nameInput.value,
-    phone: phoneInput.value,
-    country: countryInput.value,
-    occupation: occupationInput.value,
-    gender: genderInput.value
+    fullName:nameInput.value,
+    phone:phoneInput.value,
+    country:countryInput.value,
+    occupation:occupationInput.value,
+    gender:genderInput.value
   });
   alert("Profile saved!");
-};
-
-/* Lessons & Quiz Logic */
-let currentCourseId = null;
-let currentLessonIndex = 0;
-let currentLesson = null;
-
-async function loadLesson(courseId, lessonIndex){
-  const doc = await db.collection("courses").doc(courseId).get();
-  const course = doc.data();
-  currentCourseId = courseId;
-  currentLessonIndex = lessonIndex;
-  currentLesson = course.lessons[lessonIndex];
-  lessonTitle.innerText = currentLesson.title;
-  lessonContent.innerHTML = `<p>${currentLesson.theory}</p>${currentLesson.images.map(img=>`<img src="${img}">`).join("")}`;
-  
-  // Quiz
-  quizContainer.innerHTML="";
-  currentLesson.quiz.forEach((q,i)=>{
-    const div = document.createElement("div");
-    div.className="quiz-question";
-    div.innerHTML=`<strong>Q${i+1}: ${q.question}</strong><br>`+q.options.map((o,j)=>
-      `<button onclick="checkAnswer(${i},${j})">${o}</button>`
-    ).join("");
-    quizContainer.appendChild(div);
-  });
-}
-
-function checkAnswer(qIndex,optIndex){
-  const btns = quizContainer.children[qIndex].querySelectorAll("button");
-  btns.forEach((b,i)=>b.className=i===currentLesson.quiz[qIndex].answer?"correct":"wrong");
-}
-
-/* NEXT LESSON BUTTON */
-nextLessonBtn.onclick = ()=>{
-  if(currentLessonIndex+1<currentLesson.length){
-    loadLesson(currentCourseId,currentLessonIndex+1);
-  }else{
-    alert("You have completed this course!");
-  }
 };
 </script>
 </body>
