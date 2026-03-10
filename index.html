@@ -2,24 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>HB Skills Academy ULTRA - User Portal</title>
+<title>HB Skills Academy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-:root{--green:#198754;--orange:#ff8c00;--dark:#0f2a44;}
-body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;}
-header{background:var(--dark);color:#fff;padding:15px;text-align:center;}
-header div:first-child{font-size:24px;font-weight:bold;}
-header div:last-child{font-size:14px;color:#fff;opacity:0.85;}
-nav{display:none;gap:5px;background:var(--orange);padding:8px;flex-wrap:wrap;}
-nav button{flex:1;border:none;padding:10px;color:#fff;border-radius:6px;font-size:15px;cursor:pointer;margin:2px;}
+:root{
+  --green:#198754;
+  --orange:#ff8c00;
+  --dark:#0f2a44;
+  --light:#f4f4f4;
+  --card-bg:#fff;
+}
+body{margin:0;font-family:Arial,sans-serif;background:var(--light);}
+header{background:var(--dark);color:#fff;padding:15px;text-align:center;transition:0.3s;}
+header div:first-child{font-size:26px;font-weight:bold;}
+header div:last-child{font-size:14px;color:#fff;opacity:0.8;}
+nav{display:none;gap:5px;background:var(--orange);padding:8px;flex-wrap:wrap;transition:0.3s;}
+nav button{flex:1;border:none;padding:10px;color:#fff;border-radius:6px;font-size:15px;cursor:pointer;margin:2px;transition:0.3s;}
 nav button.active{background:var(--green);}
-section{display:none;padding:15px;}
+section{display:none;padding:15px;animation:fadeIn 0.5s;}
 input,textarea,select,button{width:100%;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #ccc;}
-button{background:var(--green);color:#fff;font-weight:bold;cursor:pointer;}
-.card{background:#fff;border-radius:10px;padding:10px;margin:10px 0;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+button{background:var(--green);color:#fff;font-weight:bold;cursor:pointer;transition:0.3s;}
+button:hover{opacity:0.9;}
+.card{background:var(--card-bg);border-radius:12px;padding:15px;margin:12px 0;box-shadow:0 4px 10px rgba(0,0,0,0.1);transition:0.3s;opacity:0;transform:translateY(30px);}
+.card.show{opacity:1;transform:translateY(0);}
+img,video{width:100%;max-height:300px;border-radius:8px;object-fit:contain;margin-top:8px;}
 .badge{display:inline-block;background:var(--orange);color:#000;padding:3px 6px;border-radius:4px;font-size:12px;margin-left:4px;}
-.locked{opacity:0.6;pointer-events:none;}
-img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px;background:#eee;margin-top:10px;}
+.approved{background:var(--green);color:#fff;}
+.pending{background:#ffc107;color:#000;}
+.lesson{border:1px solid #ccc;border-radius:8px;padding:8px;margin:8px 0;transition:0.3s;}
+.lesson:hover{transform:scale(1.02);}
+.testimonial{background:#fff;padding:12px;margin:10px 0;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+.testimonial img, .testimonial video{width:100%;max-height:200px;margin-top:6px;border-radius:8px;}
+.filterBtn{background:#ffc107;color:#000;border:none;padding:6px 10px;border-radius:6px;margin-right:4px;cursor:pointer;}
+.filterBtn.active{background:var(--green);color:#fff;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 </style>
 </head>
 <body>
@@ -31,106 +47,85 @@ img{width:100%;height:auto;max-height:300px;object-fit:contain;border-radius:8px
 
 <!-- Auth -->
 <section id="authBox">
-  <h3>Register / Login</h3>
-  <input id="fullName" placeholder="Full Name">
+  <h3>Login / Register</h3>
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-  <input id="phone" placeholder="Phone Number (260...)">
-  <input id="country" placeholder="Country">
-  <input id="occupation" placeholder="Occupation">
-  <select id="gender">
-    <option value="">Select Gender</option>
-    <option value="Male">Male</option>
-    <option value="Female">Female</option>
-    <option value="Other">Other</option>
-  </select>
-  <button id="registerBtn">Register</button>
   <button id="loginBtn">Login</button>
+  <button id="registerBtn">Register</button>
 </section>
 
-<!-- Navigation -->
+<!-- Nav -->
 <nav id="nav">
   <button data-tab="courses" class="active">Courses</button>
-  <button data-tab="enrollments">My Enrollments</button>
+  <button data-tab="myEnrollments">My Enrollments</button>
+  <button data-tab="testimonials">Testimonials</button>
   <button data-tab="profile">Profile</button>
   <button id="logout">Logout</button>
 </nav>
 
 <!-- Courses -->
 <section id="courses">
-  <h3>Available Courses</h3>
-  <div id="coursesList"></div>
+  <h3>Courses</h3>
+  <input id="searchInput" placeholder="Search courses...">
+  <div>
+    <button class="filterBtn active" data-filter="all">All</button>
+    <button class="filterBtn" data-filter="free">Free</button>
+    <button class="filterBtn" data-filter="premium">Premium</button>
+  </div>
+  <div id="courseList"></div>
 </section>
 
-<!-- Enrollments -->
-<section id="enrollments">
-  <h3>Enroll in a Course</h3>
-  <select id="courseSelect">
-    <option value="">Select Course</option>
-  </select>
-  <input id="paymentMethod" placeholder="Payment Method (Mobile Money / Zanaco)">
-  <input type="file" id="paymentProof" accept="image/*">
-  <button id="enrollBtn">Submit Enrollment</button>
-  <h4>Your Enrollments</h4>
-  <div id="myEnrollments"></div>
+<!-- My Enrollments -->
+<section id="myEnrollments">
+  <h3>My Enrollments</h3>
+  <div id="enrollmentsList"></div>
+</section>
+
+<!-- Testimonials -->
+<section id="testimonials">
+  <h3>Student Testimonials</h3>
+  <div id="testimonialsList"></div>
 </section>
 
 <!-- Profile -->
 <section id="profile">
   <h3>Profile</h3>
-  <input id="nameInput" placeholder="Full Name">
-  <input id="phoneInput" placeholder="Phone">
-  <input id="countryInput" placeholder="Country">
-  <input id="occupationInput" placeholder="Occupation">
-  <select id="genderInput">
-    <option value="">Select Gender</option>
-    <option value="Male">Male</option>
-    <option value="Female">Female</option>
-    <option value="Other">Other</option>
-  </select>
-  <button id="saveProfile">Save Profile</button>
+  <input id="nameInput" placeholder="Your Name">
+  <input id="phoneInput" placeholder="Phone Number">
+  <textarea id="bioInput" placeholder="Short Bio"></textarea>
+  <button id="saveProfile">Save</button>
+  <p>Contact Support: <a href="https://wa.me/260776942402" target="_blank">WhatsApp</a> / hbgraphics40@gmail.com</p>
 </section>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
 <script>
-// Firebase Init
 firebase.initializeApp({
   apiKey:"AIzaSyDhRFgn7nXoZlRf-GX7XakwUYrEMFZDgrI",
   authDomain:"pa-mwera.firebaseapp.com",
-  projectId:"pa-mwera",
-  storageBucket:"pa-mwera.appspot.com"
+  projectId:"pa-mwera"
 });
-const auth=firebase.auth();
-const db=firebase.firestore();
-const storage=firebase.storage();
+
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 /* Elements */
 const authBox=document.getElementById("authBox");
 const nav=document.getElementById("nav");
-const fullName=document.getElementById("fullName");
 const email=document.getElementById("email");
 const password=document.getElementById("password");
-const phone=document.getElementById("phone");
-const country=document.getElementById("country");
-const occupation=document.getElementById("occupation");
-const gender=document.getElementById("gender");
-const coursesList=document.getElementById("coursesList");
-const courseSelect=document.getElementById("courseSelect");
-const paymentMethod=document.getElementById("paymentMethod");
-const paymentProof=document.getElementById("paymentProof");
-const myEnrollments=document.getElementById("myEnrollments");
+const courseList=document.getElementById("courseList");
+const enrollmentsList=document.getElementById("enrollmentsList");
+const testimonialsList=document.getElementById("testimonialsList");
 const nameInput=document.getElementById("nameInput");
 const phoneInput=document.getElementById("phoneInput");
-const countryInput=document.getElementById("countryInput");
-const occupationInput=document.getElementById("occupationInput");
-const genderInput=document.getElementById("genderInput");
+const bioInput=document.getElementById("bioInput");
+const searchInput=document.getElementById("searchInput");
+let filterType="all";
 
-/* NAVIGATION */
+/* Navigation */
 function show(id){
   document.querySelectorAll("section").forEach(s=>s.style.display="none");
   document.getElementById(id).style.display="block";
@@ -140,35 +135,24 @@ function show(id){
 }
 document.querySelectorAll("nav button[data-tab]").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
-/* REGISTER & LOGIN */
-document.getElementById("registerBtn").onclick=async()=>{
-  if(!fullName.value||!email.value||!password.value||!phone.value||!country.value||!occupation.value||!gender.value){
-    return alert("Fill all fields");
-  }
+/* Auth */
+document.getElementById("loginBtn").onclick = () => auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
+document.getElementById("registerBtn").onclick = async () => {
+  if(!email.value||!password.value){alert("Enter email & password"); return;}
   const c = await auth.createUserWithEmailAndPassword(email.value,password.value);
-  await db.collection("users").doc(c.user.uid).set({
-    fullName:fullName.value,
-    phone:phone.value,
-    country:country.value,
-    occupation:occupation.value,
-    gender:gender.value,
-    role:"student",
-    createdAt:Date.now()
-  });
+  await db.collection("users").doc(c.user.uid).set({name:"",phone:"",bio:"",verified:false});
   alert("Registered! Login now.");
 };
-document.getElementById("loginBtn").onclick=()=>auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
+document.getElementById("logout").onclick = ()=> auth.signOut();
 
-document.getElementById("logout").onclick=()=>auth.signOut();
-
-/* AUTH STATE */
-auth.onAuthStateChanged(async user=>{
-  if(user){
+auth.onAuthStateChanged(u=>{
+  if(u){
     authBox.style.display="none";
     nav.style.display="flex";
     show("courses");
     loadCourses();
-    loadEnrollments();
+    loadMyEnrollments();
+    loadTestimonials();
     loadProfile();
   }else{
     authBox.style.display="block";
@@ -177,83 +161,187 @@ auth.onAuthStateChanged(async user=>{
   }
 });
 
-/* LOAD COURSES */
-async function loadCourses(){
-  const snap=await db.collection("courses").get();
-  coursesList.innerHTML="";
-  courseSelect.innerHTML='<option value="">Select Course</option>';
-  snap.forEach(doc=>{
-    const d=doc.data();
-    coursesList.innerHTML+=`<div class="card"><h4>${d.title}</h4><p>${d.description}</p><div>Price: K${d.price||0}</div></div>`;
-    courseSelect.innerHTML+=`<option value="${doc.id}">${d.title}</option>`;
-  });
+/* Cloudinary Upload */
+async function uploadToCloudinary(file){
+  const fd=new FormData();
+  fd.append("file",file);
+  fd.append("upload_preset","zedmarket");
+  const r = await fetch("https://api.cloudinary.com/v1_1/dc5moeafv/image/upload",{method:"POST",body:fd});
+  const d = await r.json();
+  if(!d.secure_url) throw "Upload failed";
+  return d.secure_url;
 }
 
-/* ENROLLMENT WITH PAYMENT PROOF */
-document.getElementById("enrollBtn").onclick=async()=>{
-  try{
-    const user=auth.currentUser;
-    if(!user) return alert("Login first");
-    if(!courseSelect.value||!paymentMethod.value||paymentProof.files.length===0)
-      return alert("Fill all fields and upload proof");
+/* Load Courses with preview, avg rating */
+async function loadCourses(){
+  const snap = await db.collection("courses").get();
+  const term = searchInput.value.toLowerCase();
+  courseList.innerHTML="";
+  for(const doc of snap.docs){
+    const d=doc.data();
+    if(term && !d.title.toLowerCase().includes(term) && !d.description.toLowerCase().includes(term)) continue;
+    if(filterType==="free" && d.price>0) continue;
+    if(filterType==="premium" && d.price<=0) continue;
 
-    const file=paymentProof.files[0];
-    const ref=storage.ref(`paymentProofs/${user.uid}_${Date.now()}_${file.name}`);
-    const snap=await ref.put(file);
-    const url=await snap.ref.getDownloadURL();
+    const enrSnap = await db.collection("enrollments").where("courseId","==",doc.id).get();
+    let ratings=[], reviews=0;
+    enrSnap.forEach(e=>{if(e.data().rating){ratings.push(e.data().rating); reviews++;}});
+    const avgRating=ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
 
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <h4>${d.title} (${d.price?`K${d.price}`:'Free'})</h4>
+      <p>${d.description}</p>
+      <p>⭐ Avg Rating: ${avgRating} (${reviews} review${reviews!==1?'s':''})</p>
+      ${d.lessons && d.lessons.length ? `<button onclick="previewLesson('${doc.id}')">▶ Preview Lesson</button>` : ''}
+      <button onclick="enroll('${doc.id}',${d.price||0})">Enroll</button>
+    `;
+    courseList.appendChild(card);
+    setTimeout(()=>card.classList.add("show"),100);
+  }
+}
+
+/* Preview Lesson */
+async function previewLesson(courseId){
+  const courseDoc = await db.collection("courses").doc(courseId).get();
+  if(!courseDoc.exists) return alert("Course not found");
+  const lessons = courseDoc.data().lessons;
+  if(!lessons || lessons.length===0) return alert("No lessons available");
+  const lesson = lessons[0];
+  const modal=document.createElement("div");
+  modal.style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;";
+  modal.innerHTML=`<div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:500px;text-align:center;">
+    <h4>Preview: ${lesson.title}</h4>
+    ${lesson.type==='video'?`<video controls src="${lesson.url}" style="width:100%;"></video>`:`<img src="${lesson.url}" style="width:100%;">`}
+    <button id="closePreview" style="margin-top:10px;background:#ff4d4d;">Close</button>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector("#closePreview").onclick=()=>modal.remove();
+}
+
+/* Search & Filter */
+searchInput.addEventListener("input",loadCourses);
+document.querySelectorAll(".filterBtn").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".filterBtn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    filterType=btn.dataset.filter;
+    loadCourses();
+  };
+});
+
+/* Enroll with Payment Proof */
+async function enroll(courseId, price){
+  const u = auth.currentUser;
+  if(!u) return alert("Login first");
+  if(price>0){
+    const modal=document.createElement("div");
+    modal.style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;";
+    modal.innerHTML=`<div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:400px;">
+      <h4>Upload Payment Proof (K${price})</h4>
+      <input id="senderName" placeholder="Sender Name">
+      <input type="file" id="proofFile" accept="image/*,video/*">
+      <button id="submitProofBtn">Submit</button>
+      <button id="cancelProofBtn" style="background:red;margin-top:5px;">Cancel</button>
+    </div>`;
+    document.body.appendChild(modal);
+    document.getElementById("cancelProofBtn").onclick = ()=>modal.remove();
+    document.getElementById("submitProofBtn").onclick = async ()=>{
+      const sender=document.getElementById("senderName").value.trim();
+      const file=document.getElementById("proofFile").files[0];
+      if(!sender||!file) return alert("Enter sender & select image/video");
+      const proofURL=await uploadToCloudinary(file);
+      await db.collection("enrollments").add({
+        courseId,
+        userId:u.uid,
+        paymentProof:proofURL,
+        senderName:sender,
+        approved:false,
+        createdAt:Date.now()
+      });
+      alert("Payment proof submitted! Admin will approve.");
+      modal.remove();
+      loadMyEnrollments();
+    };
+  }else{
     await db.collection("enrollments").add({
-      userId:user.uid,
-      courseId:courseSelect.value,
-      paymentMethod:paymentMethod.value,
-      paymentProof:url,
-      approved:false,
+      courseId,
+      userId:u.uid,
+      approved:true,
       createdAt:Date.now()
     });
-    alert("Enrollment submitted! Wait for admin approval.");
-    paymentMethod.value=""; paymentProof.value="";
-    loadEnrollments();
-  }catch(e){console.error(e); alert("Error submitting enrollment.");}
-};
+    alert("Enrolled successfully!");
+    loadMyEnrollments();
+  }
+}
 
-/* LOAD USER ENROLLMENTS */
-async function loadEnrollments(){
-  const user=auth.currentUser;
-  const snap=await db.collection("enrollments").where("userId","==",user.uid).get();
-  myEnrollments.innerHTML="";
-  snap.forEach(doc=>{
+/* My Enrollments */
+async function loadMyEnrollments(){
+  if(!auth.currentUser) return;
+  const snap=await db.collection("enrollments").where("userId","==",auth.currentUser.uid).get();
+  enrollmentsList.innerHTML="";
+  if(snap.empty){enrollmentsList.innerHTML="<p>No enrollments yet</p>"; return;}
+  for(const doc of snap.docs){
     const d=doc.data();
-    const locked=d.approved?"":"locked";
-    myEnrollments.innerHTML+=`<div class="card ${locked}">
-      <h4>Course ID: ${d.courseId}</h4>
-      <p>Payment: ${d.paymentMethod}</p>
-      <p>Status: ${d.approved?'<span class="badge approved">Approved</span>':'<span class="badge pending">Pending Approval</span>'}</p>
-      <a href="${d.paymentProof}" target="_blank">View Proof</a>
+    const courseDoc = await db.collection("courses").doc(d.courseId).get();
+    let lessonsHTML="";
+    if(d.approved && courseDoc.exists && courseDoc.data().lessons){
+      lessonsHTML="<h5>Lessons:</h5>";
+      courseDoc.data().lessons.forEach(lesson=>{
+        if(lesson.type==='video'){
+          lessonsHTML+=`<div class="lesson"><strong>${lesson.title}</strong><br><video controls src="${lesson.url}"></video></div>`;
+        }else{
+          lessonsHTML+=`<div class="lesson"><strong>${lesson.title}</strong><br><img src="${lesson.url}"></div>`;
+        }
+      });
+    }
+    enrollmentsList.innerHTML+=`<div class="card show">
+      <h4>${courseDoc.exists?courseDoc.data().title:'Unknown Course'}</h4>
+      ${d.paymentProof?`<p>Sender: ${d.senderName}</p><${d.paymentProof.endsWith('.mp4')?'video controls src="'+d.paymentProof+'"':'img src="'+d.paymentProof+'"'}></${d.paymentProof.endsWith('.mp4')?'video':'img'}>`:''}
+      <p>Status: ${d.approved?'<span class="badge approved">Approved</span>':'<span class="badge pending">Pending</span>'}</p>
+      ${lessonsHTML}
     </div>`;
+  }
+}
+
+/* Fake Testimonials */
+function loadTestimonials(){
+  const fakeData=[
+    {name:'Alice',text:'Amazing course!',media:'https://via.placeholder.com/300',type:'image'},
+    {name:'Bob',text:'Loved the lessons.',media:'https://sample-videos.com/video123/mp4/240/big_buck_bunny_240p_1mb.mp4',type:'video'},
+    {name:'Carol',text:'Learned a lot!',media:'https://via.placeholder.com/300',type:'image'}
+  ];
+  testimonialsList.innerHTML='';
+  fakeData.forEach(f=>{
+    const div=document.createElement("div");
+    div.className='testimonial card show';
+    div.innerHTML=`<strong>${f.name}</strong><p>${f.text}</p>`;
+    if(f.type==='image') div.innerHTML+=`<img src="${f.media}">`;
+    if(f.type==='video') div.innerHTML+=`<video controls src="${f.media}"></video>`;
+    testimonialsList.appendChild(div);
   });
 }
 
-/* PROFILE */
+/* Profile */
 async function loadProfile(){
+  if(!auth.currentUser) return;
   const doc=await db.collection("users").doc(auth.currentUser.uid).get();
-  const d=doc.data();
-  nameInput.value=d.fullName||"";
-  phoneInput.value=d.phone||"";
-  countryInput.value=d.country||"";
-  occupationInput.value=d.occupation||"";
-  genderInput.value=d.gender||"";
+  const data = doc.data();
+  nameInput.value=data.name||"";
+  phoneInput.value=data.phone||"";
+  bioInput.value=data.bio||"";
 }
-document.getElementById("saveProfile").onclick=async()=>{
-  const user=auth.currentUser;
-  await db.collection("users").doc(user.uid).update({
-    fullName:nameInput.value,
-    phone:phoneInput.value,
-    country:countryInput.value,
-    occupation:occupationInput.value,
-    gender:genderInput.value
+document.getElementById("saveProfile").onclick=async ()=>{
+  if(!auth.currentUser) return alert("Login first");
+  await db.collection("users").doc(auth.currentUser.uid).update({
+    name:nameInput.value.trim(),
+    phone:phoneInput.value.trim(),
+    bio:bioInput.value.trim()
   });
-  alert("Profile saved!");
+  alert("Profile updated!");
 };
+
 </script>
 </body>
 </html>
