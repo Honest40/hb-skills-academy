@@ -386,6 +386,7 @@ const grid = document.getElementById("gridCourses");
     const card=document.createElement("div");
     card.className="card";
     card.innerHTML=`
+    ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img">` : ""}
       <h4>${d.title} (${d.price?`K${d.price}`:'Free'})</h4>
       <p>${d.description}</p>
       <p>⭐ Avg Rating: ${avgRating} (${reviews} review${reviews!==1?'s':''})</p>
@@ -435,12 +436,27 @@ async function enroll(courseId, price){
     modal.style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;";
     modal.innerHTML=`<div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:400px;">
       <h4>Upload Payment Proof (K${price})</h4>
+      <hr>
+
+<h3>💳 Airtel Money Payment (Zambia)</h3>
+
+<p><b>Send To:</b> 0776942402</p>
+<p><b>Name:</b> Honest Bulilu</p>
+<p><b>Amount:</b> K${price}</p>
+
+<p><b>Steps:</b></p>
+<p>1. Dial *115#</p>
+<p>2. Send Money</p>
+<p>3. Enter number above</p>
+<p>4. Enter K${price}</p>
       <input id="senderName" placeholder="Sender Name">
       <input type="file" id="proofFile" accept="image/*,video/*">
       <button id="submitProofBtn">Submit</button>
+      <button id="copyPayBtn">Copy Payment Info</button>
       <button id="cancelProofBtn" style="background:red;margin-top:5px;">Cancel</button>
     </div>`;
     document.body.appendChild(modal);
+    modal.querySelector("#copyPayBtn").onclick = () => copyPayment(price);
     document.getElementById("cancelProofBtn").onclick = ()=>modal.remove();
     document.getElementById("submitProofBtn").onclick = async ()=>{
       const sender=document.getElementById("senderName").value.trim();
@@ -536,6 +552,32 @@ document.getElementById("saveProfile").onclick=async ()=>{
   });
   alert("Profile updated!");
 };
+  function copyPayment(price){
+  navigator.clipboard.writeText(
+`Airtel Money Payment
+Amount: K${price}
+Number: 0776942402
+Name: Honest Bulilu`
+  );
+  alert("Copied successfully!");
+}
+  function toast(msg){
+  let t=document.createElement("div");
+  t.innerText=msg;
+  t.style.cssText=`
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#000;
+    color:#fff;
+    padding:10px 15px;
+    border-radius:8px;
+    z-index:9999;
+  `;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
 
 </script>
 </body>
