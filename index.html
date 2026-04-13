@@ -644,10 +644,13 @@ async function loadMyEnrollments(){
     let progress = 0;
     let total = 0;
 
-const courseData = courseDoc.data();
-const isFreeCourse = courseData.price === 0;
+const courseData = courseDoc.exists ? courseDoc.data() : null;
+if (!courseData) continue;
 
-if((d.approved || isFreeCourse) && courseDoc.exists && courseData.lessons){
+const isFreeCourse = Number(courseData.price) === 0;
+const isApproved = d.approved === true || isFreeCourse;
+
+if (isApproved && courseData.lessons){
       const lessons = courseDoc.data().lessons;
       total = lessons.length;
 
