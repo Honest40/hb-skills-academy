@@ -6,6 +6,66 @@
 <title>HB Skills Academy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+
+/* ===== TESTIMONIAL MODERN UI ===== */
+
+.testimonial-card{
+  background: linear-gradient(135deg,#ffffff,#f1f5f9);
+  padding:18px;
+  margin:12px 0;
+  border-radius:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.15);
+  opacity:0;
+  transform:translateY(30px);
+  animation:fadeUp 0.6s ease forwards;
+  transition:0.3s;
+}
+
+.testimonial-card:hover{
+  transform:scale(1.03);
+  box-shadow:0 15px 35px rgba(0,0,0,0.2);
+}
+
+.testimonial-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.avatar{
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:bold;
+  font-size:18px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+.testimonial-text{
+  font-style:italic;
+  color:#334155;
+  margin:8px 0;
+}
+
+.stars{
+  color:#f59e0b;
+  font-size:14px;
+}
+
+/* animation */
+@keyframes fadeUp{
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
 :root{
   --primary:#2563eb;
   --secondary:#0ea5e9;
@@ -411,7 +471,7 @@ async function loadCourses(){
       : 0;
 
     const card = document.createElement("div");
-    card.className="card";
+    card.className="card show";
 
     card.innerHTML = `
       ${(d.coverUrl || d.imageUrl) 
@@ -641,18 +701,42 @@ if((d.approved || isFreeCourse) && courseDoc.exists && courseData.lessons){
 }
 /* Fake Testimonials */
 function loadTestimonials(){
-  const fakeData=[
-    {name:'Alice',text:'Amazing course!',media:'https://via.placeholder.com/300',type:'image'},
-    {name:'Bob',text:'Loved the lessons.',media:'https://sample-videos.com/video123/mp4/240/big_buck_bunny_240p_1mb.mp4',type:'video'},
-    {name:'Carol',text:'Learned a lot!',media:'https://via.placeholder.com/300',type:'image'}
+
+  const testimonials = [
+    {name:"Grace Mumba", location:"Lusaka", text:"This platform changed my life. I can now build websites on my own!", rating:5},
+    {name:"Kelvin Phiri", location:"Kitwe", text:"Very practical lessons. I started earning after learning graphic design here.", rating:5},
+    {name:"Chanda Bwalya", location:"Ndola", text:"Simple explanations and easy to follow. I love the mobile learning experience.", rating:4},
+    {name:"Martha Zulu", location:"Livingstone", text:"I enrolled for the business course and now I run a small online shop.", rating:5},
+    {name:"Joseph Banda", location:"Kabwe", text:"The courses are well structured and very motivating for beginners.", rating:4},
+    {name:"Alice Tembo", location:"Chipata", text:"I never thought I could learn coding, but now I can build simple apps!", rating:5}
   ];
-  testimonialsList.innerHTML='';
-  fakeData.forEach(f=>{
-    const div=document.createElement("div");
-    div.className='testimonial card show';
-    div.innerHTML=`<strong>${f.name}</strong><p>${f.text}</p>`;
-    if(f.type==='image') div.innerHTML+=`<img src="${f.media}">`;
-    if(f.type==='video') div.innerHTML+=`<video controls src="${f.media}"></video>`;
+
+  testimonialsList.innerHTML = "";
+
+  testimonials.forEach((t, index) => {
+
+    const div = document.createElement("div");
+    div.className = "testimonial-card";
+
+    div.innerHTML = `
+      <div class="testimonial-header">
+        <div class="avatar">${t.name.charAt(0)}</div>
+        <div>
+          <h4>${t.name}</h4>
+          <small>📍 ${t.location}</small>
+        </div>
+      </div>
+
+      <p class="testimonial-text">"${t.text}"</p>
+
+      <div class="stars">
+        ${"⭐".repeat(t.rating)}
+      </div>
+    `;
+
+    // animation delay effect
+    div.style.animationDelay = (index * 0.15) + "s";
+
     testimonialsList.appendChild(div);
   });
 }
@@ -878,16 +962,23 @@ window.prevLesson = function(){
 window.openCourse = openCourse;
 window.loadQuiz = loadQuiz;
 window.markComplete = markComplete;
-window.answerQuestion = answerQuestion;
-window.nextLesson = nextLesson;
-window.prevLesson = prevLesson;
+window.openCertificate = openCertificate;
+
+function isCourseCompleted(enrollId, totalLessons){
+  for(let i = 0; i < totalLessons; i++){
+    const key = `progress_${enrollId}_${i}`;
+    if(!localStorage.getItem(key)) return false;
+  }
+  return true;
+}
 
 function openCertificate(courseId, enrollId, totalLessons, courseName){
-    const completed = isCourseCompleted(enrollId, totalLessons);
 
-if(!completed){
-  return alert("You must complete all lessons first!");
-}
+  const completed = isCourseCompleted(enrollId, totalLessons);
+
+  if(!completed){
+    return alert("You must complete all lessons first!");
+  }
 
   const u = auth.currentUser;
   if(!u) return alert("Login required");
@@ -920,9 +1011,9 @@ if(!completed){
     const name = document.getElementById("certName").value;
 
     const courseDoc = await db.collection("courses").doc(courseId).get();
-    const courseName = courseDoc.data().title;
+    const courseNameReal = courseDoc.data().title;
 
-    generatePDF(name, courseName);
+    generatePDF(name, courseNameReal, "CERT-" + Date.now());
     modal.remove();
   };
 }
@@ -932,7 +1023,6 @@ function generatePDF(name, courseName, certId){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  // Border
   doc.setDrawColor(0, 0, 0);
   doc.rect(10, 10, 190, 277);
 
