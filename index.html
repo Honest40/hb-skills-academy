@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <meta charset="UTF-8">
 <title>HB Skills Academy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -283,6 +284,8 @@ img,video{
   <div id="courseList"></div>
 </section>
 
+
+
 <!-- My Enrollments -->
 <section id="myEnrollments">
   <h3>My Enrollments</h3>
@@ -441,18 +444,45 @@ async function loadCourses(){
 async function previewLesson(courseId){
   const courseDoc = await db.collection("courses").doc(courseId).get();
   if(!courseDoc.exists) return alert("Course not found");
-  const lessons = courseDoc.data().lessons;
-  if(!lessons || lessons.length===0) return alert("No lessons available");
+
+  const data = courseDoc.data();
+  const lessons = data.lessons || [];
+
+  if(lessons.length === 0){
+    return alert("This course has no lessons yet");
+  }
+
   const lesson = lessons[0];
-  const modal=document.createElement("div");
-  modal.style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;";
-  modal.innerHTML=`<div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:500px;text-align:center;">
-    <h4>Preview: ${lesson.title}</h4>
-    ${lesson.type==='video'?`<video controls src="${lesson.url}" style="width:100%;"></video>`:`<img src="${lesson.url}" style="width:100%;">`}
-    <button id="closePreview" style="margin-top:10px;background:#ff4d4d;">Close</button>
-  </div>`;
+
+  if(!lesson.url){
+    return alert("Lesson missing video/image URL");
+  }
+
+  const modal = document.createElement("div");
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:500px;">
+      <h3>${lesson.title || "Preview Lesson"}</h3>
+
+      ${lesson.type === "video"
+        ? `<video controls src="${lesson.url}" style="width:100%"></video>`
+        : `<img src="${lesson.url}" style="width:100%">`
+      }
+
+      <button onclick="this.closest('div').parentElement.remove()">Close</button>
+    </div>
+  `;
+
   document.body.appendChild(modal);
-  modal.querySelector("#closePreview").onclick=()=>modal.remove();
 }
 
 /* Search & Filter */
@@ -536,9 +566,11 @@ async function loadMyEnrollments(){
   enrollmentsList.innerHTML="";
 
   if(snap.empty){
+      
     enrollmentsList.innerHTML="<p>No enrollments yet</p>";
     return;
   }
+  
 
   for(const doc of snap.docs){
     const d=doc.data();
@@ -548,7 +580,10 @@ async function loadMyEnrollments(){
     let progress = 0;
     let total = 0;
 
-    if(d.approved && courseDoc.exists && courseDoc.data().lessons){
+const courseData = courseDoc.data();
+const isFreeCourse = courseData.price === 0;
+
+if((d.approved || isFreeCourse) && courseDoc.exists && courseData.lessons){
       const lessons = courseDoc.data().lessons;
       total = lessons.length;
 
@@ -575,22 +610,33 @@ async function loadMyEnrollments(){
 
       lessonsHTML += `<p><b>Progress:</b> ${Math.round((progress/total)*100)}%</p>`;
 
-      if(progress === total){
-        lessonsHTML += `<p style="color:green;font-weight:bold;">🎓 Course Completed!</p>`;
-      }
+     if(total > 0 && progress === total){
+  lessonsHTML += `
+    <p style="color:green;font-weight:bold;">🎓 Course Completed!</p>
+    <button onclick="openCertificate('${d.courseId}')">
+      📜 Download Certificate
+    </button>
+  `;
+}
     }
 
-    enrollmentsList.innerHTML+=`
-    <div class="card show">
-      <h4>${courseDoc.exists ? courseDoc.data().title : 'Unknown Course'}</h4>
+  enrollmentsList.innerHTML += `
+<div class="card show">
+  <h4>${courseDoc.exists ? courseDoc.data().title : 'Unknown Course'}</h4>
 
-      <p>Status: ${d.approved
-        ? '<span class="badge approved">Approved</span>'
-        : '<span class="badge pending">Pending</span>'}
-      </p>
+  <p>Status: ${d.approved
+    ? '<span class="badge approved">Approved</span>'
+    : '<span class="badge pending">Pending</span>'}
+  </p>
 
-      ${lessonsHTML}
-    </div>`;
+  <button onclick="openCourse('${d.courseId}','${doc.id}')">
+    📚 Open Course
+  </button>
+
+  <button onclick="loadQuiz('${d.courseId}')">
+    🧠 Take Quiz
+  </button>
+</div>`;
   }
 }
 /* Fake Testimonials */
@@ -655,12 +701,267 @@ Name: Honest Bulilu`
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),3000);
 }
-function markComplete(courseId, index){
-  localStorage.setItem(`progress_${courseId}_${index}`, true);
+function markComplete(enrollId, index){
+  localStorage.setItem(`progress_${enrollId}_${index}`, true);
   toast("Lesson completed!");
   loadMyEnrollments();
 }
 
+async function loadQuiz(courseId){
+
+  const snap = await db.collection("courses")
+    .doc(courseId)
+    .collection("quizzes")
+    .get();
+
+  if(snap.empty){
+    alert("No quiz available for this course");
+    return;
+  }
+
+  let score = 0;
+  let total = snap.size;
+
+  const modal = document.createElement("div");
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+  `;
+
+  let html = `
+    <div style="background:#fff;padding:20px;border-radius:12px;width:90%;max-width:500px;max-height:90vh;overflow:auto;">
+    <h3>🧠 Quiz</h3>
+  `;
+
+  snap.forEach((doc,i)=>{
+    const q = doc.data();
+
+    html += `
+      <div class="card show">
+        <p><b>Q${i+1}:</b> ${q.question}</p>
+
+        <button onclick="answerQuestion(this,'${q.answer}','A')">A. ${q.A}</button>
+        <button onclick="answerQuestion(this,'${q.answer}','B')">B. ${q.B}</button>
+        <button onclick="answerQuestion(this,'${q.answer}','C')">C. ${q.C}</button>
+        <button onclick="answerQuestion(this,'${q.answer}','D')">D. ${q.D}</button>
+      </div>
+    `;
+  });
+
+  html += `
+    <button id="submitQuizBtn">Submit Quiz</button>
+    <button id="closeQuiz" style="background:red;margin-top:5px;">Close</button>
+    <p id="quizResult"></p>
+    </div>
+  `;
+
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+
+  window.answerQuestion = (btn, correct, selected) => {
+    const parent = btn.parentElement;
+    parent.querySelectorAll("button").forEach(b=>b.disabled=true);
+
+    if(correct === selected){
+      btn.style.background="green";
+      score++;
+    }else{
+      btn.style.background="red";
+    }
+  };
+
+  document.getElementById("submitQuizBtn").onclick = () => {
+    document.getElementById("quizResult").innerHTML =
+      `🎯 Score: ${score}/${total}`;
+  };
+
+  document.getElementById("closeQuiz").onclick = () => modal.remove();
+}
+async function openCourse(courseId, enrollId){
+  const courseDoc = await db.collection("courses").doc(courseId).get();
+
+  if(!courseDoc.exists) return alert("Course not found");
+
+ const courseData = courseDoc.data();
+const lessons = courseData?.lessons || [];
+
+  if(!lessons || lessons.length === 0){
+    return alert("No lessons in this course yet");
+  }
+
+  let currentIndex = 0;
+
+  const modal = document.createElement("div");
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.85);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+  `;
+
+  const container = document.createElement("div");
+  container.style = `
+    background:#fff;
+    padding:20px;
+    border-radius:12px;
+    width:95%;
+    max-width:700px;
+    max-height:90vh;
+    overflow:auto;
+    text-align:center;
+  `;
+
+  function renderLesson(){
+    const lesson = lessons[currentIndex];
+    const key = `progress_${enrollId}_${currentIndex}`;
+    const done = localStorage.getItem(key);
+
+    container.innerHTML = `
+      <h3>${courseDoc.data().title}</h3>
+      <p><b>Lesson ${currentIndex+1} of ${lessons.length}</b></p>
+
+      <h4>${lesson.title}</h4>
+
+      ${
+        lesson.type==='video'
+        ? `<video controls src="${lesson.url}" onended="markComplete('${enrollId}',${currentIndex})"></video>`
+        : lesson.type==='image'
+        ? `<img src="${lesson.url}" onclick="markComplete('${enrollId}',${currentIndex})">`
+        : `<iframe src="${lesson.url}" style="width:100%;height:300px;"></iframe>`
+      }
+
+      <p>${done ? '✅ Completed' : '❌ Not Completed'}</p>
+
+      <div style="display:flex;justify-content:space-between;margin-top:15px;">
+        <button onclick="prevLesson()" ${currentIndex===0 ? 'disabled' : ''}>⬅ Back</button>
+        <button onclick="nextLesson()" ${currentIndex===lessons.length-1 ? 'disabled' : ''}>Next ➡</button>
+      </div>
+
+      <button id="closeCourse" style="background:red;margin-top:10px;">Close</button>
+    `;
+
+    document.getElementById("closeCourse").onclick = () => modal.remove();
+  }
+
+ window.nextLesson = function(){
+  if(currentIndex < lessons.length - 1){
+    currentIndex++;
+    renderLesson();
+  } else {
+    alert("🎓 Course Completed!");
+  }
+}
+
+window.prevLesson = function(){
+  if(currentIndex > 0){
+    currentIndex--;
+    renderLesson();
+  }
+}
+
+  modal.appendChild(container);
+  document.body.appendChild(modal);
+
+  renderLesson();
+}
+
+window.openCourse = openCourse;
+window.loadQuiz = loadQuiz;
+window.markComplete = markComplete;
+window.answerQuestion = answerQuestion;
+window.nextLesson = nextLesson;
+window.prevLesson = prevLesson;
+
+function openCertificate(courseId, enrollId, totalLessons, courseName){
+    const completed = isCourseCompleted(enrollId, totalLessons);
+
+if(!completed){
+  return alert("You must complete all lessons first!");
+}
+
+  const u = auth.currentUser;
+  if(!u) return alert("Login required");
+
+  const modal = document.createElement("div");
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:12px;width:90%;max-width:400px;">
+      <h3>📜 Certificate Details</h3>
+
+      <input id="certName" placeholder="Enter Full Name" value="${u.email}">
+      <button id="generateCert">Download Certificate</button>
+      <button onclick="this.parentElement.parentElement.remove()" style="background:red;">Close</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("generateCert").onclick = async () => {
+    const name = document.getElementById("certName").value;
+
+    const courseDoc = await db.collection("courses").doc(courseId).get();
+    const courseName = courseDoc.data().title;
+
+    generatePDF(name, courseName);
+    modal.remove();
+  };
+}
+
+function generatePDF(name, courseName, certId){
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Border
+  doc.setDrawColor(0, 0, 0);
+  doc.rect(10, 10, 190, 277);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.text("CERTIFICATE OF COMPLETION", 105, 40, null, null, "center");
+
+  doc.setFontSize(14);
+  doc.text("This certifies that", 105, 65, null, null, "center");
+
+  doc.setFontSize(20);
+  doc.text(name, 105, 85, null, null, "center");
+
+  doc.setFontSize(14);
+  doc.text("has successfully completed", 105, 105, null, null, "center");
+
+  doc.setFontSize(16);
+  doc.text(courseName, 105, 125, null, null, "center");
+
+  doc.setFontSize(12);
+  doc.text("Certificate ID: " + certId, 105, 155, null, null, "center");
+
+  doc.text("Date: " + new Date().toLocaleDateString(), 105, 170, null, null, "center");
+
+  doc.setFontSize(10);
+  doc.text("HB Skills Academy - Verified Certificate", 105, 250, null, null, "center");
+
+  doc.save(`${courseName}-certificate.pdf`);
+}
 </script>
 </body>
 </html>
