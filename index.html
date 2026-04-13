@@ -230,10 +230,24 @@ img,video{
   from{opacity:0;transform:translateY(20px);}
   to{opacity:1;transform:translateY(0);}
 }
+.course-img{
+  height:180px;
+  object-fit:cover;
+  border-radius:10px;
+}
 </style>
 </head>
 <body>
+    <section id="hero" style="display:block;text-align:center;padding:60px 20px;color:#fff;">
+  <h1 style="font-size:32px;">Learn Real Skills. Build Your Future.</h1>
+  <p style="opacity:0.8;margin-top:10px;">
+    Join HB Skills Academy and start learning today.
+  </p>
 
+  <button onclick="document.getElementById('authBox').scrollIntoView({behavior:'smooth'})">
+    Get Started
+  </button>
+</section>
 <header>
   <div>HB Skills Academy ULTRA</div>
   <div>User Portal</div>
@@ -367,37 +381,62 @@ async function uploadToCloudinary(file){
 }
 
 /* Load Courses with preview, avg rating */
+
 async function loadCourses(){
   const snap = await db.collection("courses").get();
   const term = searchInput.value.toLowerCase();
+
   courseList.innerHTML = '<div class="grid" id="gridCourses"></div>';
-const grid = document.getElementById("gridCourses");
+  const grid = document.getElementById("gridCourses");
+
   for(const doc of snap.docs){
-    const d=doc.data();
+    const d = doc.data();
+
     if(term && !d.title.toLowerCase().includes(term) && !d.description.toLowerCase().includes(term)) continue;
     if(filterType==="free" && d.price>0) continue;
     if(filterType==="premium" && d.price<=0) continue;
 
     const enrSnap = await db.collection("enrollments").where("courseId","==",doc.id).get();
-    let ratings=[], reviews=0;
-    enrSnap.forEach(e=>{if(e.data().rating){ratings.push(e.data().rating); reviews++;}});
-    const avgRating=ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):0;
 
-    const card=document.createElement("div");
+    let ratings=[];
+    enrSnap.forEach(e=>{
+      if(e.data().rating) ratings.push(e.data().rating);
+    });
+
+    const avgRating = ratings.length
+      ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1)
+      : 0;
+
+    const card = document.createElement("div");
     card.className="card";
-    card.innerHTML=`
-    ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img">` : ""}
-      <h4>${d.title} (${d.price?`K${d.price}`:'Free'})</h4>
-      <p>${d.description}</p>
-      <p>⭐ Avg Rating: ${avgRating} (${reviews} review${reviews!==1?'s':''})</p>
-      ${d.lessons && d.lessons.length ? `<button onclick="previewLesson('${doc.id}')">▶ Preview Lesson</button>` : ''}
-      <button onclick="enroll('${doc.id}',${d.price||0})">Enroll</button>
+
+    card.innerHTML = `
+      ${(d.coverUrl || d.imageUrl) 
+  ? `<img src="${d.coverUrl || d.imageUrl}" class="course-img">` 
+  : ""
+}
+
+      <h4>${d.title}</h4>
+      <p style="opacity:0.7;font-size:14px;">${d.description}</p>
+
+      <div style="display:flex;justify-content:space-between;margin-top:10px;">
+        <span style="font-weight:bold;color:${d.price ? 'orange':'green'};">
+          ${d.price ? `K${d.price}` : 'FREE'}
+        </span>
+        <span>⭐ ${avgRating}</span>
+      </div>
+
+      ${d.lessons?.length ? `<button onclick="previewLesson('${doc.id}')">Preview</button>` : ''}
+
+      <button onclick="enroll('${doc.id}',${d.price||0})">
+        Enroll Now
+      </button>
     `;
+
     grid.appendChild(card);
     setTimeout(()=>card.classList.add("show"),100);
   }
 }
-
 /* Preview Lesson */
 async function previewLesson(courseId){
   const courseDoc = await db.collection("courses").doc(courseId).get();
@@ -490,32 +529,70 @@ async function enroll(courseId, price){
 /* My Enrollments */
 async function loadMyEnrollments(){
   if(!auth.currentUser) return;
-  const snap=await db.collection("enrollments").where("userId","==",auth.currentUser.uid).get();
+
+  const snap=await db.collection("enrollments")
+    .where("userId","==",auth.currentUser.uid).get();
+
   enrollmentsList.innerHTML="";
-  if(snap.empty){enrollmentsList.innerHTML="<p>No enrollments yet</p>"; return;}
+
+  if(snap.empty){
+    enrollmentsList.innerHTML="<p>No enrollments yet</p>";
+    return;
+  }
+
   for(const doc of snap.docs){
     const d=doc.data();
     const courseDoc = await db.collection("courses").doc(d.courseId).get();
+
     let lessonsHTML="";
+    let progress = 0;
+    let total = 0;
+
     if(d.approved && courseDoc.exists && courseDoc.data().lessons){
+      const lessons = courseDoc.data().lessons;
+      total = lessons.length;
+
       lessonsHTML="<h5>Lessons:</h5>";
-      courseDoc.data().lessons.forEach(lesson=>{
-        if(lesson.type==='video'){
-          lessonsHTML+=`<div class="lesson"><strong>${lesson.title}</strong><br><video controls src="${lesson.url}"></video></div>`;
-        }else{
-          lessonsHTML+=`<div class="lesson"><strong>${lesson.title}</strong><br><img src="${lesson.url}"></div>`;
-        }
+
+      lessons.forEach((lesson,index)=>{
+        const key = `progress_${doc.id}_${index}`;
+        const completed = localStorage.getItem(key);
+
+        if(completed) progress++;
+
+        lessonsHTML += `
+        <div class="lesson">
+          <strong>${lesson.title}</strong><br>
+
+          ${lesson.type==='video'
+            ? `<video controls src="${lesson.url}" onended="markComplete('${doc.id}',${index})"></video>`
+            : `<img src="${lesson.url}" onclick="markComplete('${doc.id}',${index})">`
+          }
+
+          <p>${completed ? '✅ Completed' : '❌ Not Completed'}</p>
+        </div>`;
       });
+
+      lessonsHTML += `<p><b>Progress:</b> ${Math.round((progress/total)*100)}%</p>`;
+
+      if(progress === total){
+        lessonsHTML += `<p style="color:green;font-weight:bold;">🎓 Course Completed!</p>`;
+      }
     }
-    enrollmentsList.innerHTML+=`<div class="card show">
-      <h4>${courseDoc.exists?courseDoc.data().title:'Unknown Course'}</h4>
-      ${d.paymentProof?`<p>Sender: ${d.senderName}</p><${d.paymentProof.endsWith('.mp4')?'video controls src="'+d.paymentProof+'"':'img src="'+d.paymentProof+'"'}></${d.paymentProof.endsWith('.mp4')?'video':'img'}>`:''}
-      <p>Status: ${d.approved?'<span class="badge approved">Approved</span>':'<span class="badge pending">Pending</span>'}</p>
+
+    enrollmentsList.innerHTML+=`
+    <div class="card show">
+      <h4>${courseDoc.exists ? courseDoc.data().title : 'Unknown Course'}</h4>
+
+      <p>Status: ${d.approved
+        ? '<span class="badge approved">Approved</span>'
+        : '<span class="badge pending">Pending</span>'}
+      </p>
+
       ${lessonsHTML}
     </div>`;
   }
 }
-
 /* Fake Testimonials */
 function loadTestimonials(){
   const fakeData=[
@@ -577,6 +654,11 @@ Name: Honest Bulilu`
   `;
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),3000);
+}
+function markComplete(courseId, index){
+  localStorage.setItem(`progress_${courseId}_${index}`, true);
+  toast("Lesson completed!");
+  loadMyEnrollments();
 }
 
 </script>
