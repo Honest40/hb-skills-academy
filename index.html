@@ -353,6 +353,7 @@ img, video{
 <!-- My Enrollments -->
 <section id="myEnrollments">
   <h3>My Enrollments</h3>
+  <input id="enrollmentSearch" placeholder="Search your courses..." style="margin-top:10px;">
   <div id="enrollmentsList"></div>
   <div id="uploadProgress" style="display:none;margin-top:15px;">
   <div style="background:#e5e7eb;height:10px;border-radius:10px;overflow:hidden;">
@@ -404,6 +405,7 @@ const nameInput=document.getElementById("nameInput");
 const phoneInput=document.getElementById("phoneInput");
 const bioInput=document.getElementById("bioInput");
 const searchInput=document.getElementById("searchInput");
+const enrollmentSearch = document.getElementById("enrollmentSearch");
 let filterType="all";
 
 /* Navigation */
@@ -471,15 +473,18 @@ async function loadCourses(){
 
     const enrSnap = await db.collection("enrollments").where("courseId","==",doc.id).get();
 
-    let ratings=[];
-    enrSnap.forEach(e=>{
-      if(e.data().rating) ratings.push(e.data().rating);
-    });
+   let total = 0;
+let count = 0;
 
-    const avgRating = ratings.length
-      ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1)
-      : 0;
+enrSnap.forEach(e=>{
+  const r = e.data().rating;
+  if(r){
+    total += r;
+    count++;
+  }
+});
 
+const avgRating = count ? (total / count).toFixed(1) : "No rating";
     const card = document.createElement("div");
     card.className="card show";
 
@@ -515,39 +520,51 @@ async function loadCourses(){
   </p>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-    <span>⭐ ${avgRating}</span>
-    <small>${d.lessons?.length || 0} lessons</small>
+   <div>
+  ⭐ ${avgRating}
+  <div id="stars-${doc.id}">
+    ${[1,2,3,4,5].map(n=>`
+      <span onclick="rateCourse('${doc.id}',${n})" style="cursor:pointer;font-size:18px;">☆</span>
+    `).join("")}
+  </div>
+</div>
+    <small id="lesson-count-${doc.id}">Loading...</small>
   </div>
 
   <button onclick="enroll('${doc.id}',${d.price||0})">
     Enroll Now
   </button>
-  <button onclick="previewLesson('${doc.id}')">
-  👁 Preview Course
+ <button onclick="openCourse('${doc.id}')">
+  ▶ Start Learning
 </button>
 `;
     grid.appendChild(card);
+    // LOAD REAL LESSON COUNT
+db.collection("courses")
+  .doc(doc.id)
+  .collection("lessons")
+  .get()
+  .then(snap=>{
+    const el = document.getElementById(`lesson-count-${doc.id}`);
+    if(el) el.innerText = snap.size + " lessons";
+  });
     setTimeout(()=>card.classList.add("show"),100);
   }
 }
 /* Preview Lesson */
 async function previewLesson(courseId){
-  const courseDoc = await db.collection("courses").doc(courseId).get();
-  if(!courseDoc.exists) return alert("Course not found");
 
-  const data = courseDoc.data();
-  const lessons = data.lessons || [];
+  const snap = await db.collection("courses")
+    .doc(courseId)
+    .collection("lessons")
+    .limit(1)
+    .get();
 
-  if(lessons.length === 0){
+  if(snap.empty){
     return alert("This course has no lessons yet");
   }
-
-  const lesson = lessons[0];
-
-  if(!lesson.url){
-    return alert("Lesson missing video/image URL");
-  }
-
+  
+const lessonCount = lessonsSnap.size;
   const modal = document.createElement("div");
   modal.style = `
     position:fixed;
@@ -563,7 +580,8 @@ async function previewLesson(courseId){
     <div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:500px;">
       <h3>${lesson.title || "Preview Lesson"}</h3>
 
-      ${lesson.type === "video"
+      ${
+        lesson.type === "video"
         ? `<video controls src="${lesson.url}" style="width:100%"></video>`
         : `<img src="${lesson.url}" style="width:100%">`
       }
@@ -668,6 +686,9 @@ text.innerText = "Upload Complete ✔";
 
 /* My Enrollments */
 async function loadMyEnrollments(){
+    
+    const term = enrollmentSearch.value.toLowerCase();
+    
   if(!auth.currentUser) return;
 
   const snap=await db.collection("enrollments")
@@ -1093,12 +1114,14 @@ async function openCourse(courseId){
       <p><b>Lesson ${window.currentIndex+1} of ${window.lessons.length}</b></p>
 
       <h4>${lesson.title}</h4>
+      <p>Lesson ${window.currentIndex+1} of ${window.lessons.length}</p>
 
       ${
         lesson.type === "video"
-        ? `<video controls src="${lesson.url}" style="width:100%"></video>`
+        ? `<video controls src="${lesson.url}" 
+onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})"" style="width:100%"></video>`
         : lesson.type === "image"
-        ? `<img src="${lesson.url}">`
+        ? `<img src="${lesson.url}" onclick="markComplete('course_'+ '${courseId}', ${window.currentIndex})">`
         : `<iframe src="${lesson.url}" style="width:100%;height:300px;"></iframe>`
       }
 
@@ -1239,6 +1262,31 @@ function playSound(name){
     sounds[name].play();
   }
 }
+
+async function rateCourse(courseId, rating){
+  const user = auth.currentUser;
+  if(!user) return alert("Login first");
+
+  // find user's enrollment
+  const snap = await db.collection("enrollments")
+    .where("userId","==",user.uid)
+    .where("courseId","==",courseId)
+    .get();
+
+  if(snap.empty){
+    return alert("Enroll first before rating");
+  }
+
+  const docId = snap.docs[0].id;
+
+  await db.collection("enrollments").doc(docId).update({
+    rating: rating
+  });
+
+  alert("⭐ Rating submitted!");
+  loadCourses(); // refresh UI
+}
+
 </script>
 </body>
 </html>
