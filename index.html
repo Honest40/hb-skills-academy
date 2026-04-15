@@ -2,10 +2,7 @@
 <html lang="en">
 <head>
     
-    <button onclick="toggleTheme()">🌙</button>
-    
-    <button onclick="toggleMenu()">☰</button>
-    
+   
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <meta charset="UTF-8">
 <title>HB Skills Academy</title>
@@ -330,12 +327,54 @@ body.light{
   background:#f8fafc;
   color:#000;
 }
+
+@keyframes fall{
+  to{
+    transform:translateY(100vh);
+    opacity:0;
+  }
+}
 </style>
 </head>
 
 
 
 <body>
+    
+    <div style="
+  position:sticky;
+  top:0;
+  height:5px;
+  background:#1e293b;
+  z-index:9999;
+">
+  <div id="progressBar" style="
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#22c55e,#3b82f6);
+    transition:0.3s;
+  "></div>
+</div>
+    
+    <div id="globalLoader" style="
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:#0f172a;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+  font-size:18px;
+  z-index:99999;
+">
+  ⏳ Loading HB Skills Academy...
+</div>
+     <button onclick="toggleTheme()">🌙</button>
+    
+    <button onclick="toggleMenu()">☰</button>
+
+    
     <section id="hero" style="display:block;text-align:center;padding:60px 20px;color:#fff;">
   <h1 style="font-size:32px;">Learn Real Skills. Build Your Future.</h1>
   <p style="opacity:0.8;margin-top:10px;">
@@ -388,7 +427,12 @@ body.light{
   <h3>My Enrollments</h3>
   <input id="enrollmentSearch" placeholder="Search your courses..." style="margin-top:10px;">
   <div id="enrollmentsList"></div>
-  <div id="uploadProgress" style="display:none;margin-top:15px;">
+ <div id="uploadProgress" style="display:none;margin-top:15px;">
+  <div style="background:#e5e7eb;height:10px;border-radius:10px;overflow:hidden;">
+    <div id="bar" style="width:0%;height:100%;background:#22c55e;transition:0.2s;"></div>
+  </div>
+  <p id="progressText" style="font-size:12px;margin-top:5px;">Preparing upload...</p>
+</div>
   <div style="background:#e5e7eb;height:10px;border-radius:10px;overflow:hidden;">
     <div id="bar" style="width:0%;height:100%;background:#22c55e;transition:0.3s;"></div>
   </div>
@@ -438,75 +482,121 @@ const nameInput=document.getElementById("nameInput");
 const phoneInput=document.getElementById("phoneInput");
 const bioInput=document.getElementById("bioInput");
 const searchInput=document.getElementById("searchInput");
+let searchTimeout;
+
 searchInput.addEventListener("input", () => {
-  loadCourses();
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(loadCourses, 400);
 });
 const enrollmentSearch = document.getElementById("enrollmentSearch");
 let filterType="all";
 
 /* Navigation */
 function show(id){
-  document.querySelectorAll("section").forEach(s=>s.style.display="none");
-  document.getElementById(id).style.display="block";
+  document.querySelectorAll("section").forEach(s=>{
+    s.style.display = "none";
+  });
+
+  const target = document.getElementById(id);
+
+  if(!target){
+    console.warn("Section not found:", id);
+    return;
+  }
+
+  target.style.display = "block";
+
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  const btn=document.querySelector(`nav button[data-tab="${id}"]`);
+
+  const btn = document.querySelector(`nav button[data-tab="${id}"]`);
   if(btn) btn.classList.add("active");
 }
 document.querySelectorAll("nav button[data-tab]").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
 /* Auth */
-document.getElementById("loginBtn").onclick = () => auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
+document.getElementById("loginBtn").onclick = async () => {
+  try {
+    await auth.signInWithEmailAndPassword(email.value, password.value);
+    alert("Login successful!");
+  } catch (e) {
+    alert(e.message);
+  }
+};
 document.getElementById("registerBtn").onclick = async () => {
   if(!email.value||!password.value){alert("Enter email & password"); return;}
   const c = await auth.createUserWithEmailAndPassword(email.value,password.value);
   await db.collection("users").doc(c.user.uid).set({name:"",phone:"",bio:"",verified:false});
   alert("Registered! Login now.");
 };
-document.getElementById("logout").onclick = ()=> auth.signOut();
+document.getElementById("logout").onclick = () => {
+  auth.signOut();
+  showAuth();
+};
 
-auth.onAuthStateChanged(u=>{
-  if(u){
-    authBox.style.display="none";
-    nav.style.display="flex";
+auth.onAuthStateChanged(u => {
+  document.getElementById("globalLoader").style.display = "none";
+
+  if (u) {
+    authBox.style.display = "none";
+    nav.style.display = "flex";
+
     show("courses");
+
     loadCourses();
     loadMyEnrollments();
     loadTestimonials();
     loadProfile();
-  }else{
-    authBox.style.display="block";
-    nav.style.display="none";
+
+    dailyReward();
+  } else {
+    authBox.style.display = "block";
+    nav.style.display = "none";
+
     show("authBox");
   }
 });
 
+function showAuth(){
+  document.querySelectorAll("section").forEach(s=>{
+    if(s.id !== "authBox") s.style.display="none";
+  });
+
+  authBox.style.display = "block";
+}
+
 /* Cloudinary Upload */
 async function uploadToCloudinary(file){
-  const fd=new FormData();
-  fd.append("file",file);
-  fd.append("upload_preset","zedmarket");
-  const r = await fetch("https://api.cloudinary.com/v1_1/dc5moeafv/image/upload",{method:"POST",body:fd});
-  const d = await r.json();
-  if(!d.secure_url) throw "Upload failed";
-  return d.secure_url;
+  try{
+    const fd=new FormData();
+    fd.append("file",file);
+    fd.append("upload_preset","zedmarket");
+
+    const r = await fetch("https://api.cloudinary.com/v1_1/dc5moeafv/image/upload",{method:"POST",body:fd});
+    const d = await r.json();
+
+    if(!d.secure_url) throw new Error("Upload failed");
+
+    return d.secure_url;
+  }catch(err){
+    alert("Upload failed. Try again.");
+    throw err;
+  }
 }
 
 let cachedCourses = [];
 
 async function loadCourses(){
-  if(cachedCourses.length){
-    renderCourses(cachedCourses);
-    return;
-  }
+    
+    const user = auth.currentUser;
+let myCourses = [];
 
-  const snap = await db.collection("courses").get();
-  cachedCourses = snap.docs.map(d=>({...d.data(), id:d.id}));
-  renderCourses(cachedCourses);
+if(user){
+  const myEnrollSnap = await db.collection("enrollments")
+    .where("userId","==",user.uid)
+    .get();
+
+  myCourses = myEnrollSnap.docs.map(d => d.data().courseId);
 }
-
-/* Load Courses with preview, avg rating */
-
-async function loadCourses(){
 
   // 🔥 SHOW SKELETON LOADING FIRST
  courseList.innerHTML = `
@@ -554,7 +644,7 @@ async function loadCourses(){
     const card = document.createElement("div");
    card.className="card show netflix-card";
     card.innerHTML = `
-      <img src="${d.coverUrl || ''}" class="course-img" loading="lazy">
+${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img" loading="lazy">` : ``}
 
       <h4>${d.title}</h4>
       <p style="opacity:.7">${d.description}</p>
@@ -570,8 +660,11 @@ async function loadCourses(){
   <span onclick="rateCourse('${doc.id}',5)">⭐⭐⭐⭐⭐</span>
 </div>
 
-      <button onclick="enroll('${doc.id}', ${Number(d.price || 0)})">Enroll</button>
-      <button onclick="openCourse('${doc.id}')">Start</button>
+${
+  myCourses.includes(doc.id)
+  ? `<button disabled style="background:#16a34a;cursor:not-allowed;">✔ Already Enrolled</button>`
+  : `<button onclick="enroll('${doc.id}', ${Number(d.price || 0)})">Enroll Now</button>`
+}      <button onclick="openCourse('${doc.id}')">Start</button>
     `;
 
     grid.appendChild(card);
@@ -607,13 +700,18 @@ async function previewLesson(courseId){
     <div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:500px;">
       <h3>${lesson.title || "Preview Lesson"}</h3>
 
-      ${
+     ${
+  lesson.url
+    ? (
         lesson.type === "video"
-        ? `<video controls src="${lesson.url}" style="width:100%"></video>`
-        : `<img src="${lesson.url}" style="width:100%">`
-      }
-
-      <button onclick="this.closest('div').parentElement.remove()">Close</button>
+          ? `<video controls src="${lesson.url}" style="width:100%"></video>`
+          : lesson.type === "image"
+          ? `<img src="${lesson.url}" style="width:100%">`
+          : `<iframe src="${lesson.url}" style="width:100%;height:300px;"></iframe>`
+      )
+    : `<p style="opacity:.6">No media available for this lesson</p>`
+}
+    <button onclick="document.body.removeChild(this.closest('div').parentElement)">Close</button>
     </div>
   `;
 
@@ -624,6 +722,20 @@ async function previewLesson(courseId){
 async function enroll(courseId, price){
   const u = auth.currentUser;
   if(!u) return alert("Login first");
+
+  // ✅ STEP 1: CHECK IF USER ALREADY ENROLLED
+  const existing = await db.collection("enrollments")
+    .where("userId","==",u.uid)
+    .where("courseId","==",courseId)
+    .get();
+
+  if(!existing.empty){
+    alert("You are already enrolled in this course!");
+    return;
+  }
+
+  // ✅ STEP 2: FIX PRICE TYPE
+  price = Number(price);
   if(price>0){
     const modal=document.createElement("div");
     modal.style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;";
@@ -656,51 +768,81 @@ After payment, upload screenshot below for approval.
     document.body.appendChild(modal);
     modal.querySelector("#copyPayBtn").onclick = () => copyPayment(price);
     document.getElementById("cancelProofBtn").onclick = ()=>modal.remove();
-    document.getElementById("submitProofBtn").onclick = async ()=>{
-      const sender=document.getElementById("senderName").value.trim();
-      const file=document.getElementById("proofFile").files[0];
-      if(!sender||!file) return alert("Enter sender & select image/video");
+   document.getElementById("submitProofBtn").onclick = async () => {
+  const sender = document.getElementById("senderName").value.trim();
+  const file = document.getElementById("proofFile").files[0];
+
+  if (!sender || !file) {
+    return alert("Enter sender & select image/video");
+  }
+
   const progressBox = document.getElementById("uploadProgress");
-const bar = document.getElementById("bar");
-const text = document.getElementById("progressText");
+  const bar = document.getElementById("bar");
+  const text = document.getElementById("progressText");
+  const btn = document.getElementById("submitProofBtn");
 
-progressBox.style.display = "block";
-bar.style.width = "0%";
-text.innerText = "Preparing upload...";
-// fake progress animation
-let progress = 0;
-const fakeLoader = setInterval(() => {
-  progress += 8;
-  bar.style.width = progress + "%";
-  text.innerText = `Uploading proof... ${progress}%`;
+  // 🔒 lock button
+  btn.disabled = true;
+  btn.innerText = "Uploading...";
 
-  if(progress >= 90) clearInterval(fakeLoader);
-}, 200);
+  progressBox.style.display = "block";
 
-const proofURL = await uploadToCloudinary(file);
+  // reset progress
+  let progress = 0;
+  bar.style.width = "0%";
+  text.innerText = "Starting upload...";
 
-bar.style.width = "100%";
-text.innerText = "Upload Complete ✔";
-      await db.collection("enrollments").add({
-        courseId,
-        userId:u.uid,
-        paymentProof:proofURL,
-        senderName:sender,
-        approved:false,
-        createdAt:Date.now()
-      });
+  // 🎬 smooth fake progress animation
+  const fakeProgress = setInterval(() => {
+    if (progress < 85) {
+      progress += Math.random() * 10; // smoother + realistic
+      bar.style.width = progress + "%";
+
+      if (progress < 30) text.innerText = "Preparing file...";
+      else if (progress < 60) text.innerText = "Uploading proof...";
+      else text.innerText = "Almost done...";
+
+    }
+  }, 250);
+
+  try {
+    // real upload
+    const proofURL = await uploadToCloudinary(file);
+
+    clearInterval(fakeProgress);
+
+    // finish progress smoothly
+    progress = 100;
+    bar.style.width = "100%";
+    text.innerText = "Upload complete ✔";
+
+    const u = auth.currentUser;
+
+    await db.collection("enrollments").add({
+      courseId,
+      userId: u.uid,
+      paymentProof: proofURL,
+      senderName: sender,
+      approved: false,
+      createdAt: Date.now()
+    });
+
+    setTimeout(() => {
       alert("Payment proof submitted! Admin will approve.");
       modal.remove();
       loadMyEnrollments();
-    };
-  }else{
-    await db.collection("enrollments").add({
-      courseId,
-      userId:u.uid,
-      approved:true,
-      createdAt:Date.now()
-    });
-    alert("Enrolled successfully!");
+    }, 600);
+
+  } catch (err) {
+    clearInterval(fakeProgress);
+    text.innerText = "Upload failed ❌";
+    bar.style.width = "0%";
+    btn.disabled = false;
+    btn.innerText = "Submit";
+    alert("Upload failed. Try again.");
+  }
+};
+   notify("Enrolled successfully!");
     loadMyEnrollments();
   }
 }
@@ -723,18 +865,18 @@ async function loadMyEnrollments(){
     return;
   }
 
+  const grid = document.createElement("div");
+  grid.className = "grid";
+
   for(const doc of snap.docs){
 
     const d = doc.data();
-
-    // ✅ GET COURSE DATA PROPERLY
     const courseDoc = await db.collection("courses").doc(d.courseId).get();
 
     if(!courseDoc.exists) continue;
 
     const course = courseDoc.data();
 
-    // 🔍 SEARCH FILTER
     if(term && !course.title.toLowerCase().includes(term)){
       continue;
     }
@@ -742,27 +884,36 @@ async function loadMyEnrollments(){
     const isFree = Number(course.price) === 0;
     const isApproved = d.approved === true || isFree;
 
-   enrollmentsList.innerHTML = `<div class="grid" id="enrollGrid"></div>`;
-const grid = document.getElementById("enrollGrid");grid.innerHTML += `
-  <div class="card show">
-    <h4>${course.title}</h4>
+    const card = document.createElement("div");
+    card.className = "card show";
 
-    <p>Status: ${
-      isApproved
-      ? '<span class="badge approved">Approved</span>'
-      : '<span class="badge pending">Pending</span>'
-    }</p>
+    card.innerHTML = `
+      <h4>${course.title}</h4>
 
-    ${
-      isApproved
-      ? `<button onclick="openCourse('${d.courseId}')">📚 Open Course</button>`
-      : `<p style="color:#f59e0b;">⏳ Waiting for admin approval</p>`
-    }
+      <p>Status: ${
+        isApproved
+        ? '<span class="badge approved">Approved</span>'
+        : '<span class="badge pending">Pending</span>'
+      }</p>
 
-    <button onclick="loadQuiz('${d.courseId}')">🧠 Quiz</button>
-  </div>
-`;
+      ${
+        isApproved
+        ? `<button onclick="openCourse('${d.courseId}')">📚 Open Course</button>`
+        : `<p style="color:#f59e0b;">⏳ Waiting for admin approval</p>`
+      }
+
+      ${
+        isApproved
+        ? `<button onclick="loadQuiz('${d.courseId}')">🧠 Quiz</button>`
+        : `<p style="color:#f59e0b;">Quiz locked until approval</p>`
+      }
+    `;
+
+    grid.appendChild(card);
   }
+
+  enrollmentsList.appendChild(grid);
+
 }
 /* Fake Testimonials */
 function loadTestimonials(){
@@ -857,6 +1008,11 @@ function markComplete(enrollId, index){
 }
 
 async function loadQuiz(courseId){
+    const allowed = await isApproved(courseId);
+if(!allowed){
+  alert("⛔ Quiz locked until admin approves your enrollment.");
+  return;
+}
 
   const snap = await db.collection("courses")
     .doc(courseId)
@@ -967,7 +1123,7 @@ async function loadQuiz(courseId){
 
         answersDiv.querySelectorAll("button").forEach(b=>b.disabled=true);
 
-        if(letter === q.answer){
+       if(letter.toLowerCase() === q.answer.toLowerCase()){
           btn.style.background = "green";
           correctSound.play();
           score++;
@@ -1003,6 +1159,22 @@ async function loadQuiz(courseId){
   }
 
   async function showResult(){
+      function confettiBurst(){
+  for(let i=0;i<50;i++){
+    const c = document.createElement("div");
+    c.innerText = "🎉";
+    c.style.cssText = `
+      position:fixed;
+      top:0;
+      left:${Math.random()*100}%;
+      font-size:20px;
+      animation:fall 2s linear;
+      z-index:99999;
+    `;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),2000);
+  }
+}
     clearInterval(timer);
 
     const passMark = Math.ceil(questions.length * 0.5);
@@ -1045,6 +1217,11 @@ async function loadQuiz(courseId){
   renderQuestion();
 }
 async function openCourse(courseId){
+    const allowed = await isApproved(courseId);
+if(!allowed){
+  alert("⛔ You must wait for admin approval before accessing this course.");
+  return;
+}
   const courseDoc = await db.collection("courses").doc(courseId).get();
 
   if(!courseDoc.exists){
@@ -1087,6 +1264,10 @@ async function openCourse(courseId){
     .collection("lessons")
     .orderBy("createdAt")
     .get();
+    
+   if(typeof updateProgress === "function"){
+  updateProgress(0);
+}
 
   if(snap.empty){
     container.innerHTML = "<p>No lessons yet.</p>";
@@ -1099,6 +1280,11 @@ async function openCourse(courseId){
   });
 
   window.currentIndex = 0;
+  
+  const saved = localStorage.getItem("lastLesson_" + courseId);
+if(saved){
+  window.currentIndex = Number(saved);
+}
 
   function renderLesson(){
     const lesson = window.lessons[window.currentIndex];
@@ -1115,7 +1301,7 @@ async function openCourse(courseId){
       ${
         lesson.type === "video"
         ? `<video controls src="${lesson.url}" 
-onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})"" style="width:100%"></video>`
+onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})" style="width:100%"></video>`
         : lesson.type === "image"
         ? `<img src="${lesson.url}" onclick="markComplete('course_'+ '${courseId}', ${window.currentIndex})">`
         : `<iframe src="${lesson.url}" style="width:100%;height:300px;"></iframe>`
@@ -1131,6 +1317,8 @@ onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})"" style=
   }
 
   window.nextLesson = function(){
+      localStorage.setItem("lastLesson_" + courseId, window.currentIndex);
+      updateProgress(((window.currentIndex+1)/window.lessons.length)*100);
     if(window.currentIndex < window.lessons.length - 1){
       window.currentIndex++;
       renderLesson();
@@ -1152,7 +1340,7 @@ onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})"" style=
 window.openCourse = openCourse;
 window.loadQuiz = loadQuiz;
 window.markComplete = markComplete;
-window.openCertificate = openCertificate;
+
 
 function isCourseCompleted(enrollId, totalLessons){
   for(let i = 0; i < totalLessons; i++){
@@ -1317,9 +1505,82 @@ function toggleTheme(){
 }
 
 function toggleMenu(){
-  nav.style.display = nav.style.display === "flex" ? "none" : "flex";
+  if(nav.style.display === "flex"){
+    nav.style.display = "none";
+  } else {
+    nav.style.display = "flex";
+  }
 }
 
+async function isApproved(courseId){
+  const user = auth.currentUser;
+  if(!user) return false;
+
+  const snap = await db.collection("enrollments")
+    .where("userId","==",user.uid)
+    .where("courseId","==",courseId)
+    .get();
+
+  if(snap.empty) return false;
+
+  return snap.docs[0].data().approved === true;
+}
+function notify(msg, type="success"){
+  const box = document.createElement("div");
+
+  const colors = {
+    success:"#22c55e",
+    error:"#ef4444",
+    info:"#3b82f6"
+  };
+
+  box.innerText = msg;
+  box.style.cssText = `
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:${colors[type]};
+    color:#fff;
+    padding:12px 15px;
+    border-radius:10px;
+    z-index:99999;
+    box-shadow:0 10px 25px rgba(0,0,0,0.3);
+    animation:fadeIn 0.3s ease;
+  `;
+
+  document.body.appendChild(box);
+  setTimeout(()=>box.remove(),3000);
+}
+
+function updateProgress(percent){
+  const bar = document.getElementById("progressBar");
+  if(bar){
+    bar.style.width = percent + "%";
+  }
+}
+
+function dailyReward(){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const last = localStorage.getItem("lastLogin");
+  const today = new Date().toDateString();
+
+  if(last !== today){
+    localStorage.setItem("lastLogin", today);
+    notify("🎁 Daily Reward Unlocked: Keep learning!");
+  }
+}
+window.openCertificate = openCertificate;
+
+function getMediaType(url){
+  if(!url) return null;
+  if(url.includes(".mp4") || url.includes("video")) return "video";
+  if(url.includes(".jpg") || url.includes(".png") || url.includes(".jpeg")) return "image";
+  return "iframe";
+}
+
+const type = lesson.type || getMediaType(lesson.url);
 
 </script>
 </body>
