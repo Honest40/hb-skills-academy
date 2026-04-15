@@ -525,7 +525,13 @@ document.getElementById("loginBtn").onclick = async () => {
 document.getElementById("registerBtn").onclick = async () => {
   if(!email.value||!password.value){alert("Enter email & password"); return;}
   const c = await auth.createUserWithEmailAndPassword(email.value,password.value);
-  await db.collection("users").doc(c.user.uid).set({name:"",phone:"",bio:"",verified:false});
+ await db.collection("users").doc(c.user.uid).set({
+  email: c.user.email, // ✅ ADD THIS
+  name:"",
+  phone:"",
+  bio:"",
+  verified:false
+});
   alert("Registered! Login now.");
 };
 document.getElementById("logout").onclick = () => {
