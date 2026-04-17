@@ -334,6 +334,54 @@ body.light{
     opacity:0;
   }
 }
+
+.auth-container{
+  text-align:center;
+}
+
+.auth-container h2{
+  margin-bottom:5px;
+  color:#0f172a;
+}
+
+.auth-sub{
+  font-size:13px;
+  color:#64748b;
+  margin-bottom:20px;
+}
+
+.auth-tabs{
+  display:flex;
+  background:#e2e8f0;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:15px;
+}
+
+.auth-tabs button{
+  flex:1;
+  padding:10px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  font-weight:600;
+  color:#475569;
+}
+
+.auth-tabs button.active{
+  background:#2563eb;
+  color:#fff;
+}
+
+#authForm input{
+  margin-top:10px;
+}
+
+#submitAuth{
+  width:100%;
+  margin-top:15px;
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
+}
 </style>
 </head>
 
@@ -376,7 +424,9 @@ body.light{
 
     
     <section id="hero" style="display:block;text-align:center;padding:60px 20px;color:#fff;">
-  <h1 style="font-size:32px;">Learn Real Skills. Build Your Future.</h1>
+ <h1 style="font-size:36px;font-weight:800;">
+  Learn Skills That Make You Money 💸
+</h1>
   <p style="opacity:0.8;margin-top:10px;">
     Join HB Skills Academy and start learning today.
   </p>
@@ -386,19 +436,50 @@ body.light{
   </button>
 </section>
 <header>
-  <div>HB Skills Academy ULTRA</div>
-  <div>User Portal</div>
-</header>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+    
+    <img src="YOUR_LOGO_URL_HERE" style="height:40px;">
+    
+    <span style="font-size:22px;font-weight:700;">
+      HB Skills Academy
+    </span>
+    
+  </div>
 
+  <div style="font-size:13px;opacity:0.7;">
+    Learn • Grow • Earn
+  </div>
+</header>
 <!-- Auth -->
 <section id="authBox">
-  <h3>Login / Register</h3>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <button id="registerBtn">Register</button>
-</section>
+  <div class="auth-container">
 
+    <h2>Welcome to HB Skills Academy</h2>
+    <p class="auth-sub">Start your journey. Learn real skills today.</p>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button id="tabLogin" class="active" onclick="switchAuth('login')">Login</button>
+      <button id="tabRegister" onclick="switchAuth('register')">Register</button>
+    </div>
+
+    <!-- FORM -->
+    <div id="authForm">
+
+      <input id="email" type="email" placeholder="📧 Email Address">
+
+      <input id="password" type="password" placeholder="🔒 Password">
+
+      <input id="confirmPassword" type="password" placeholder="🔒 Confirm Password" style="display:none;">
+
+      <button id="submitAuth">Login</button>
+
+    </div>
+
+    <small id="authNote">Don't have an account? Register</small>
+
+  </div>
+</section>
 <!-- Nav -->
 <nav id="nav">
   <button data-tab="courses" class="active">Courses</button>
@@ -433,11 +514,6 @@ body.light{
   </div>
   <p id="progressText" style="font-size:12px;margin-top:5px;">Preparing upload...</p>
 </div>
-  <div style="background:#e5e7eb;height:10px;border-radius:10px;overflow:hidden;">
-    <div id="bar" style="width:0%;height:100%;background:#22c55e;transition:0.3s;"></div>
-  </div>
-  <p id="progressText" style="font-size:12px;margin-top:5px;">Uploading...</p>
-</div>
 </section>
 
 <!-- Testimonials -->
@@ -469,6 +545,7 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+let authMode = "login";
 
 /* Elements */
 const authBox=document.getElementById("authBox");
@@ -513,26 +590,70 @@ function show(id){
 }
 document.querySelectorAll("nav button[data-tab]").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
-/* Auth */
-document.getElementById("loginBtn").onclick = async () => {
-  try {
-    await auth.signInWithEmailAndPassword(email.value, password.value);
-    alert("Login successful!");
-  } catch (e) {
-    alert(e.message);
+function switchAuth(mode){
+  authMode = mode;
+
+  const confirmPassword = document.getElementById("confirmPassword");
+  const submitBtn = document.getElementById("submitAuth");
+  const note = document.getElementById("authNote");
+
+  document.getElementById("tabLogin").classList.remove("active");
+  document.getElementById("tabRegister").classList.remove("active");
+
+  if(mode === "login"){
+    confirmPassword.style.display = "none";
+    submitBtn.innerText = "Login";
+    note.innerText = "Don't have an account? Register";
+    document.getElementById("tabLogin").classList.add("active");
+  } else {
+    confirmPassword.style.display = "block";
+    submitBtn.innerText = "Register";
+    note.innerText = "Already have an account? Login";
+    document.getElementById("tabRegister").classList.add("active");
   }
-};
-document.getElementById("registerBtn").onclick = async () => {
-  if(!email.value||!password.value){alert("Enter email & password"); return;}
-  const c = await auth.createUserWithEmailAndPassword(email.value,password.value);
- await db.collection("users").doc(c.user.uid).set({
-  email: c.user.email, // ✅ ADD THIS
-  name:"",
-  phone:"",
-  bio:"",
-  verified:false
-});
-  alert("Registered! Login now.");
+}
+
+/* Auth */
+document.getElementById("submitAuth").onclick = async () => {
+
+  if(!email.value || !password.value){
+    return alert("Please enter email and password");
+  }
+
+  if(authMode === "login"){
+    try{
+      await auth.signInWithEmailAndPassword(email.value, password.value);
+      alert("Login successful!");
+    }catch(e){
+      alert(e.message);
+    }
+  }
+
+  if(authMode === "register"){
+    const confirmPassword = document.getElementById("confirmPassword").value;
+
+    if(password.value !== confirmPassword){
+      return alert("Passwords do not match");
+    }
+
+    try{
+      const c = await auth.createUserWithEmailAndPassword(email.value, password.value);
+
+      await db.collection("users").doc(c.user.uid).set({
+        email:c.user.email,
+        name:"",
+        phone:"",
+        bio:"",
+        verified:false
+      });
+
+      alert("Registered successfully! Now login.");
+      switchAuth("login");
+
+    }catch(e){
+      alert(e.message);
+    }
+  }
 };
 document.getElementById("logout").onclick = () => {
   auth.signOut();
@@ -634,7 +755,7 @@ if(user){
     }
   });
 
-  courseList.innerHTML = `<div class="grid" id="gridCourses"></div>`;
+  courseList.innerHTML = `<div class="grid" id="gridCourses" style="margin-top:15px;"></div>`;
   const grid = document.getElementById("gridCourses");
 
   coursesSnap.forEach(doc=>{
@@ -833,11 +954,11 @@ After payment, upload screenshot below for approval.
       createdAt: Date.now()
     });
 
-    setTimeout(() => {
-      alert("Payment proof submitted! Admin will approve.");
-      modal.remove();
-      loadMyEnrollments();
-    }, 600);
+   setTimeout(() => {
+  notify("Payment proof submitted!");
+  modal.remove();
+  loadMyEnrollments();
+}, 600);
 
   } catch (err) {
     clearInterval(fakeProgress);
@@ -848,8 +969,6 @@ After payment, upload screenshot below for approval.
     alert("Upload failed. Try again.");
   }
 };
-   notify("Enrolled successfully!");
-    loadMyEnrollments();
   }
 }
 
@@ -1324,7 +1443,9 @@ onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})" style="
 
   window.nextLesson = function(){
       localStorage.setItem("lastLesson_" + courseId, window.currentIndex);
-      updateProgress(((window.currentIndex+1)/window.lessons.length)*100);
+     if(typeof updateProgress === "function"){
+  updateProgress(((window.currentIndex+1)/window.lessons.length)*100);
+}
     if(window.currentIndex < window.lessons.length - 1){
       window.currentIndex++;
       renderLesson();
@@ -1383,7 +1504,7 @@ function openCertificate(courseId, enrollId, totalLessons, courseName){
     <div style="background:#fff;padding:20px;border-radius:12px;width:90%;max-width:400px;">
       <h3>📜 Certificate Details</h3>
 
-      <input id="certName" placeholder="Enter Full Name" value="${u.email}">
+<input id="certName" placeholder="Enter Full Name">
       <button id="generateCert">Download Certificate</button>
       <button onclick="this.parentElement.parentElement.remove()" style="background:red;">Close</button>
     </div>
@@ -1511,11 +1632,7 @@ function toggleTheme(){
 }
 
 function toggleMenu(){
-  if(nav.style.display === "flex"){
-    nav.style.display = "none";
-  } else {
-    nav.style.display = "flex";
-  }
+  nav.style.display = (nav.style.display === "flex") ? "none" : "flex";
 }
 
 async function isApproved(courseId){
@@ -1586,8 +1703,11 @@ function getMediaType(url){
   return "iframe";
 }
 
-const type = lesson.type || getMediaType(lesson.url);
-
 </script>
+<footer style="text-align:center;padding:20px;color:#94a3b8;">
+  © 2026 HB Skills Academy  
+  <br>
+  Built by HB Graphics
+</footer>
 </body>
 </html>
