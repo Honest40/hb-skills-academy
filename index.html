@@ -443,6 +443,7 @@ body.light{
     <span style="font-size:22px;font-weight:700;">
       HB Skills Academy
     </span>
+    <div id="welcomeUser" style="font-size:12px;opacity:0.7;"></div>
     
   </div>
 
@@ -486,6 +487,7 @@ body.light{
   <button data-tab="myEnrollments">My Enrollments</button>
   <button data-tab="testimonials">Testimonials</button>
   <button data-tab="profile">Profile</button>
+  <button data-tab="subscription">Subscription</button>
   <button id="logout">Logout</button>
 </nav>
 
@@ -531,12 +533,30 @@ body.light{
   <button id="saveProfile">Save</button>
   <p>Contact Support: <a href="https://wa.me/260776942402" target="_blank">WhatsApp</a> / hbgraphics40@gmail.com</p>
 </section>
+<section id="subscription">
+    <p id="subStatus">Checking subscription...</p>
+  <h3>💎 Premium Subscription</h3>
+
+  <p>Unlock all premium courses</p>
+
+  <div class="card">
+    <h4>K50 / Month</h4>
+    <p>✔ Access all courses</p>
+    <p>✔ Certificates</p>
+    <p>✔ Premium support</p>
+
+    <button onclick="subscribe()">Subscribe Now</button>
+  </div>
+</section>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
+    document.addEventListener("DOMContentLoaded", () => {
+  console.log("App loaded...");
+});
 firebase.initializeApp({
   apiKey:"AIzaSyDhRFgn7nXoZlRf-GX7XakwUYrEMFZDgrI",
   authDomain:"pa-mwera.firebaseapp.com",
@@ -567,6 +587,13 @@ searchInput.addEventListener("input", () => {
 });
 const enrollmentSearch = document.getElementById("enrollmentSearch");
 let filterType="all";
+function requireAuth(){
+  if(!auth.currentUser){
+    alert("Please login first");
+    return false;
+  }
+  return true;
+}
 
 /* Navigation */
 function show(id){
@@ -616,28 +643,44 @@ function switchAuth(mode){
 /* Auth */
 document.getElementById("submitAuth").onclick = async () => {
 
+  const btn = document.getElementById("submitAuth");
+  btn.disabled = true;
+  btn.innerText = "Please wait...";
+
   if(!email.value || !password.value){
-    return alert("Please enter email and password");
+    notify("Please enter email and password", "error");
+    btn.disabled = false;
+    btn.innerText = authMode === "login" ? "Login" : "Register";
+    return;
   }
 
-  if(authMode === "login"){
-    try{
-      await auth.signInWithEmailAndPassword(email.value, password.value);
-      alert("Login successful!");
-    }catch(e){
-      alert(e.message);
-    }
-  }
+  try {
 
-  if(authMode === "register"){
-    const confirmPassword = document.getElementById("confirmPassword").value;
+    if(authMode === "login"){
 
-    if(password.value !== confirmPassword){
-      return alert("Passwords do not match");
+      await auth.signInWithEmailAndPassword(
+        email.value.trim(),
+        password.value.trim()
+      );
+
+      notify("Login successful!", "success");
     }
 
-    try{
-      const c = await auth.createUserWithEmailAndPassword(email.value, password.value);
+    if(authMode === "register"){
+
+      const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+      if(password.value !== confirmPassword){
+        notify("Passwords do not match", "error");
+        btn.disabled = false;
+        btn.innerText = "Register";
+        return;
+      }
+
+      const c = await auth.createUserWithEmailAndPassword(
+        email.value.trim(),
+        password.value.trim()
+      );
 
       await db.collection("users").doc(c.user.uid).set({
         email:c.user.email,
@@ -647,23 +690,36 @@ document.getElementById("submitAuth").onclick = async () => {
         verified:false
       });
 
-      alert("Registered successfully! Now login.");
+      notify("Registered successfully! Now login.", "success");
       switchAuth("login");
-
-    }catch(e){
-      alert(e.message);
     }
-  }
-};
-document.getElementById("logout").onclick = () => {
-  auth.signOut();
-  showAuth();
-};
 
+  } catch(e){
+    notify(e.message, "error");
+  }
+
+  btn.disabled = false;
+  btn.innerText = authMode === "login" ? "Login" : "Register";
+};
+document.getElementById("logout").onclick = async () => {
+  await auth.signOut();
+  showAuth();
+  notify("Logged out successfully", "info");
+};
 auth.onAuthStateChanged(u => {
+    checkSubStatus();
+    console.log("User state:", u);
   document.getElementById("globalLoader").style.display = "none";
 
   if (u) {
+      db.collection("users").doc(u.uid).get().then(doc=>{
+  if(doc.exists){
+    const data = doc.data();
+    document.getElementById("welcomeUser").innerText =
+      "👋 " + (data.name || "User");
+  }
+});
+      notify("Welcome back 👋", "info");
     authBox.style.display = "none";
     nav.style.display = "flex";
 
@@ -676,6 +732,7 @@ auth.onAuthStateChanged(u => {
 
     dailyReward();
   } else {
+      notify("Please login to continue", "info");
     authBox.style.display = "block";
     nav.style.display = "none";
 
@@ -738,7 +795,9 @@ if(user){
   // 🔥 LOAD DATA IN PARALLEL (FAST)
   const [coursesSnap, enrollmentsSnap] = await Promise.all([
     db.collection("courses").get(),
-    db.collection("enrollments").get()
+   db.collection("enrollments")
+  .where("userId","==",auth.currentUser.uid)
+  .get()
   ]);
 
   // 🔥 GROUP RATINGS (FAST)
@@ -847,6 +906,14 @@ async function previewLesson(courseId){
 
 /* Enroll with Payment Proof */
 async function enroll(courseId, price){
+    if(price > 0){
+  const sub = await isSubscribed();
+  if(!sub){
+    alert("⛔ Subscribe first to enroll in premium courses");
+    return;
+  }
+}
+  if(!requireAuth()) return;
   const u = auth.currentUser;
   if(!u) return alert("Login first");
 
@@ -1207,6 +1274,8 @@ if(!allowed){
 
     if(current >= questions.length){
       showResult();
+      playSound("complete");
+confettiBurst();
       return;
     }
 
@@ -1284,36 +1353,21 @@ if(!allowed){
   }
 
   async function showResult(){
-      function confettiBurst(){
-  for(let i=0;i<50;i++){
-    const c = document.createElement("div");
-    c.innerText = "🎉";
-    c.style.cssText = `
-      position:fixed;
-      top:0;
-      left:${Math.random()*100}%;
-      font-size:20px;
-      animation:fall 2s linear;
-      z-index:99999;
-    `;
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(),2000);
-  }
-}
+   
     clearInterval(timer);
 
     const passMark = Math.ceil(questions.length * 0.5);
     const passed = score >= passMark;
 
     // 📊 SAVE TO FIREBASE
-    await db.collection("results").add({
-      userId: auth.currentUser.uid,
-      courseId,
-      score,
-      total: questions.length,
-      passed,
-      createdAt: Date.now()
-    });
+   await db.collection("results").add({
+  userId: auth.currentUser.uid,
+  courseId,
+  score,
+  total: questions.length,
+  passed,
+  createdAt: Date.now()
+});
     
     firebase.firestore().enablePersistence()
 .catch((err)=>{
@@ -1322,6 +1376,8 @@ if(!allowed){
 
     box.innerHTML = `
       <h2>🎉 Exam Completed</h2>
+      
+      <button onclick="showLeaderboard('${courseId}')">🏆 Leaderboard</button>
 
       <p style="font-size:18px;">Score: ${score}/${questions.length}</p>
 
@@ -1331,7 +1387,7 @@ if(!allowed){
 
       ${
         passed
-        ? `<button onclick="openCertificate('${courseId}')">📜 Get Certificate</button>`
+        ? `<button onclick="openCertificate('${courseId}', 'course_'+ '${courseId}', ${questions.length}, 'Course')">📜 Get Certificate</button>`
         : `<p>Try again to pass</p>`
       }
 
@@ -1342,6 +1398,17 @@ if(!allowed){
   renderQuestion();
 }
 async function openCourse(courseId){
+    const courseDocCheck = await db.collection("courses").doc(courseId).get();
+const courseCheck = courseDocCheck.data();
+
+// if course is premium, check subscription
+if(courseCheck.price > 0){
+  const sub = await isSubscribed();
+  if(!sub){
+    alert("⛔ You need an active subscription to access this course");
+    return;
+  }
+}
     const allowed = await isApproved(courseId);
 if(!allowed){
   alert("⛔ You must wait for admin approval before accessing this course.");
@@ -1369,26 +1436,63 @@ if(!allowed){
     z-index:1000;
   `;
 
-  const container = document.createElement("div");
-  container.style = `
-    background:#fff;
-    padding:20px;
-    border-radius:12px;
-    width:90%;
-    max-width:600px;
-    max-height:90vh;
-    overflow:auto;
-  `;
+ const container = document.createElement("div");
+container.style = `
+  background:#0f172a;
+  color:#fff;
+  padding:0;
+  border-radius:16px;
+  width:95%;
+  max-width:900px;
+  height:90vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+`;
 
+/* HEADER */
+const header = document.createElement("div");
+header.style = `
+  padding:15px;
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+`;
+
+header.innerHTML = `
+  <span>${course.title}</span>
+ <button onclick="this.closest('div').parentElement.parentElement.remove()" style="background:red;padding:5px 10px;">X</button>
+`;
+
+/* CONTENT */
+const content = document.createElement("div");
+content.style = `
+  flex:1;
+  padding:15px;
+  overflow:auto;
+`;
+
+const footer = document.createElement("div");
+footer.style = `
+  padding:10px;
+  background:#1e293b;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+`;
+
+container.appendChild(header);
+container.appendChild(content);
+container.appendChild(footer);
   modal.appendChild(container);
   document.body.appendChild(modal);
 
   // Get lessons from subcollection
-  const snap = await db.collection("courses")
-    .doc(courseId)
-    .collection("lessons")
-    .orderBy("createdAt")
-    .get();
+ if(cachedCourses.length === 0){
+  const snap = await db.collection("courses").get();
+  cachedCourses = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
+}
     
    if(typeof updateProgress === "function"){
   updateProgress(0);
@@ -1442,7 +1546,7 @@ onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})" style="
   }
 
   window.nextLesson = function(){
-      localStorage.setItem("lastLesson_" + courseId, window.currentIndex);
+     localStorage.setItem("lastLesson_" + courseId, window.currentIndex + 1);
      if(typeof updateProgress === "function"){
   updateProgress(((window.currentIndex+1)/window.lessons.length)*100);
 }
@@ -1450,7 +1554,11 @@ onended="markComplete('course_'+ '${courseId}', ${window.currentIndex})" style="
       window.currentIndex++;
       renderLesson();
     } else {
-      alert("🎓 Course Completed!");
+      notify("🎓 Course Completed! Now take the quiz", "success");
+
+setTimeout(()=>{
+  loadQuiz(courseId);
+}, 1000);
     }
   }
 
@@ -1512,15 +1620,21 @@ function openCertificate(courseId, enrollId, totalLessons, courseName){
 
   document.body.appendChild(modal);
 
-  document.getElementById("generateCert").onclick = async () => {
-    const name = document.getElementById("certName").value;
+document.getElementById("generateCert").onclick = async () => {
 
-    const courseDoc = await db.collection("courses").doc(courseId).get();
-    const courseNameReal = courseDoc.data().title;
+  const userDoc = await db.collection("users").doc(u.uid).get();
+  let name = "Student";
 
-    generatePDF(name, courseNameReal, "CERT-" + Date.now());
-    modal.remove();
-  };
+  if(userDoc.exists){
+    name = userDoc.data().name || "Student";
+  }
+
+  const courseDoc = await db.collection("courses").doc(courseId).get();
+  const courseNameReal = courseDoc.data().title;
+
+  generatePDF(name, courseNameReal, "CERT-" + Date.now());
+  modal.remove();
+};
 }
 
 function generatePDF(name, courseName, certId){
@@ -1703,6 +1817,108 @@ function getMediaType(url){
   return "iframe";
 }
 
+async function subscribe(){
+  const user = auth.currentUser;
+  if(!user) return alert("Login first");
+
+  const confirmPay = confirm("Pay K50 via Airtel Money?");
+  if(!confirmPay) return;
+
+  await db.collection("subscriptions").doc(user.uid).set({
+    active:true,
+    startDate: Date.now(),
+    expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
+  });
+
+  alert("✅ Subscription Activated!");
+
+  // refresh UI immediately
+  loadCourses();
+  loadMyEnrollments();
+}
+
+async function showLeaderboard(courseId){
+
+  const snap = await db.collection("results")
+    .where("courseId","==",courseId)
+    .orderBy("score","desc")
+    .limit(10)
+    .get();
+
+  let html = "<h3>🏆 Top Students</h3>";
+
+  let rank = 1; 
+
+  for(const doc of snap.docs){
+    const d = doc.data();
+
+    const userDoc = await db.collection("users").doc(d.userId).get();
+    const name = userDoc.exists ? userDoc.data().name : "User";
+
+    html += `<p>#${rank} ${name} - ${d.score}</p>`;
+    rank++;
+  }
+
+  const modal = document.createElement("div");
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:10px;">
+      ${html}
+      <button onclick="this.closest('div').parentElement.remove()">Close</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+async function isSubscribed(){
+  const user = auth.currentUser;
+  if(!user) return false;
+
+  const doc = await db.collection("subscriptions").doc(user.uid).get();
+
+  if(!doc.exists) return false;
+
+  const data = doc.data();
+  return data.active && data.expires > Date.now();
+}
+
+async function checkSubStatus(){
+  const el = document.getElementById("subStatus");
+  if(!el) return;
+
+  const sub = await isSubscribed();
+
+  el.innerText = sub 
+    ? "✅ Active Subscription"
+    : "❌ No Active Subscription";
+}
+
+   function confettiBurst(){
+  for(let i=0;i<50;i++){
+    const c = document.createElement("div");
+    c.innerText = "🎉";
+    c.style.cssText = `
+      position:fixed;
+      top:0;
+      left:${Math.random()*100}%;
+      font-size:20px;
+      animation:fall 2s linear;
+      z-index:99999;
+    `;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),2000);
+  }
+} 
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
