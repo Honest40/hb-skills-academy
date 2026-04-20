@@ -1666,7 +1666,12 @@ style="
     : lesson.type === "image"
     ? `<img src="${lesson.url}" style="width:100%;height:100%;object-fit:cover;">`
     
-    : `<iframe src="${lesson.url}" style="width:100%;height:100%;border:none;"></iframe>`
+    : `<iframe 
+  src="https://www.youtube-nocookie.com/embed/VIDEO_ID?controls=0&modestbranding=1&rel=0"
+  allow="autoplay; encrypted-media"
+  allowfullscreen
+  style="width:100%;height:100%;border:none;">
+</iframe>`
   }
 
 </div>
