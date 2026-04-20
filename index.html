@@ -1634,7 +1634,7 @@ display:flex<div style="
   
   ${
    lesson.type === "video"
-? `<video id="lessonVideo" controls playsinline controlsList="nodownload">
+? `<video id="lessonVideo" controls playsinline controlsList="nodownload noremoteplayback">
 style="
   width:100%;
   height:auto;
@@ -2094,6 +2094,15 @@ setTimeout(() => {
 
   }
 }, 500);
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("keydown", (e) => {
+  if (
+    e.ctrlKey && 
+    (e.key === "s" || e.key === "u" || e.key === "c")
+  ) {
+    e.preventDefault();
+  }
+});
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
