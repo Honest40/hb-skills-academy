@@ -2038,6 +2038,16 @@ function hideSpinner(){
 async function isSubscribed(){
   return false; // temporary placeholder
 }
+
+function convertToEmbed(url){
+  if(url.includes("youtube.com/watch")){
+    return url.replace("watch?v=", "embed/");
+  }
+  if(url.includes("youtu.be/")){
+    return url.replace("youtu.be/", "youtube.com/embed/");
+  }
+  return url;
+}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
