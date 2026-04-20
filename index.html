@@ -8,6 +8,12 @@
 <title>HB Skills Academy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+
+video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
 @media(max-width:600px){
   .modal-content, 
   div[style*="max-width:500px"]{
@@ -2103,6 +2109,24 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
   }
 });
+let pressTimer;
+
+document.addEventListener("touchstart", function(e) {
+  pressTimer = setTimeout(() => {
+    e.preventDefault();
+  }, 500);
+});
+
+document.addEventListener("touchend", function() {
+  clearTimeout(pressTimer);
+});
+
+const video = document.getElementById("lessonVideo");
+
+if (video) {
+  video.addEventListener("contextmenu", e => e.preventDefault());
+  video.addEventListener("touchstart", e => e.preventDefault());
+}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
