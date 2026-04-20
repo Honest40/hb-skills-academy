@@ -1746,7 +1746,6 @@ setTimeout(() => {
 
   if (video && lesson.url) {
     video.src = lesson.url;
-    video.muted = true;
     video.playsInline = true;
 
     video.play().catch(err => {
