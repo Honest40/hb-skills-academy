@@ -1665,11 +1665,10 @@ style="
 
 </div>
     <!-- CONTROLS -->
-    <div style="display:flex;gap:10px;margin-top:10px;">
-      <button onclick="setSpeed(1)">1x</button>
-      <button onclick="setSpeed(1.5)">1.5x</button>
-      <button onclick="setSpeed(2)">2x</button>
-    </div>
+   <div style="display:flex;gap:10px;margin-top:10px;">
+  <button onclick="seekVideo(-10)">⏪ -10s</button>
+  <button onclick="seekVideo(10)">⏩ +10s</button>
+</div>
 
     <!-- PROGRESS -->
     <div style="margin-top:10px;">
@@ -1681,6 +1680,18 @@ style="
           border-radius:10px;
         "></div>
       </div>
+      setTimeout(() => {
+  const video = document.getElementById("lessonVideo");
+
+  if (video) {
+
+    // 🔥 AUTO NEXT WHEN FINISHED
+    video.onended = () => {
+      nextLesson();
+    };
+
+  }
+}, 300);
       <small>${Math.round(progressPercent)}% Completed</small>
     </div>
 
@@ -2074,6 +2085,18 @@ function convertToEmbed(url){
   }
   return url;
 }
+
+function seekVideo(seconds){
+  const video = document.getElementById("lessonVideo");
+  if(video){
+    video.currentTime += seconds;
+  }
+}
+
+video.controlsList = "nodownload";
+video.ontimeupdate = () => {
+  localStorage.setItem("videoTime_" + courseId, video.currentTime);
+};
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
