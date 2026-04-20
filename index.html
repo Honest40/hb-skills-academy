@@ -1634,7 +1634,7 @@ display:flex<div style="
   
   ${
    lesson.type === "video"
-? `<video id="lessonVideo" controls playsinline
+? `<video id="lessonVideo" controls playsinline controlsList="nodownload">
 style="
   width:100%;
   height:auto;
@@ -1680,18 +1680,7 @@ style="
           border-radius:10px;
         "></div>
       </div>
-      setTimeout(() => {
-  const video = document.getElementById("lessonVideo");
-
-  if (video) {
-
-    // 🔥 AUTO NEXT WHEN FINISHED
-    video.onended = () => {
-      nextLesson();
-    };
-
-  }
-}, 300);
+     
       <small>${Math.round(progressPercent)}% Completed</small>
     </div>
 
@@ -2093,10 +2082,18 @@ function seekVideo(seconds){
   }
 }
 
-video.controlsList = "nodownload";
-video.ontimeupdate = () => {
-  localStorage.setItem("videoTime_" + courseId, video.currentTime);
-};
+setTimeout(() => {
+  const video = document.getElementById("lessonVideo");
+
+  if (video) {
+
+    // ⏭ AUTO NEXT WHEN VIDEO ENDS
+    video.onended = () => {
+      nextLesson();
+    };
+
+  }
+}, 500);
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
