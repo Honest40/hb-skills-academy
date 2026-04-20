@@ -258,10 +258,16 @@ button:hover{
 }
 
 /* MEDIA */
-img, video{
+img{
   width:100%;
-  aspect-ratio:1/1;   /* 👈 THIS MAKES IT SQUARE */
-  object-fit:cover;   /* keeps image nicely cropped */
+  border-radius:10px;
+}
+
+video, iframe{
+  width:100%;
+  height:100%;
+  border-radius:10px;
+}/* keeps image nicely cropped */
   border-radius:10px;
   margin-top:10px;
 }
