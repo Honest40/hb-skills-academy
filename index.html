@@ -610,6 +610,8 @@ color:white;">
     <h4>Admin Panel</h4>
 
     <input id="bizTitle" placeholder="Business Title">
+    <input id="bizImage" placeholder="Cover Image URL">
+<input id="bizPrice" placeholder="Price (e.g K50 - K200)">
     <textarea id="bizDesc" placeholder="Description"></textarea>
     <input id="bizCapital" placeholder="Capital Needed (e.g K500 - K2000)">
     <input id="bizPricing" placeholder="Pricing Strategy">
@@ -679,6 +681,7 @@ function show(id){
   const target = document.getElementById(id);
   if(target){
     target.style.display = "block";
+    
   }
 
   document.querySelectorAll("nav button").forEach(b=>{
@@ -690,8 +693,15 @@ function show(id){
 }
 document.querySelectorAll("nav button[data-tab]").forEach(b=>{
   b.onclick = () => {
-    show(b.dataset.tab);
-    nav.style.display = "none"; // auto close menu
+    const tab = b.dataset.tab;
+
+    show(tab);
+    nav.style.display = "none";
+
+    // 🔥 ADD THIS
+    if(tab === "business"){
+      loadBusiness();
+    }
   };
 });
 function switchAuth(mode){
@@ -2179,6 +2189,8 @@ async function loadBusiness(){
 
   snap.forEach(doc=>{
     const d = doc.data();
+// TEMP FIX (show everything)
+if (d.approved === false) return;
     if(term && !d.title.toLowerCase().includes(term)) return;
 
     if(bizFilter !== "all" && d.type !== bizFilter) return;
@@ -2186,10 +2198,14 @@ async function loadBusiness(){
     const card = document.createElement("div");
     card.className = "card show";
 
-    card.innerHTML = `
+  card.innerHTML = `
+  <img src="${d.image}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;">
+
   <h4>${d.title}</h4>
+
   <p>${d.description.substring(0,80)}...</p>
 
+  <p><b>💰 Price:</b> ${d.price}</p>
   <p><b>💰 Capital:</b> ${d.capital}</p>
 
   ${
@@ -2199,19 +2215,13 @@ async function loadBusiness(){
   }
 
   ${d.featured ? '<span class="badge approved">🔥 Trending</span>' : ''}
-
-  ${
-    isAdmin()
-    ? `
-    <button onclick="approveBiz('${doc.id}')">Approve</button>
-    <button onclick="deleteBiz('${doc.id}')">Delete</button>
-    `
-    : ""
-  }
 `;
 
     list.appendChild(card);
   });
+  if (list.innerHTML === "") {
+  list.innerHTML = "<p style='color:white;'>No business ideas found</p>";
+}
 }
 
 /* Filter */
@@ -2224,6 +2234,8 @@ function filterBiz(type){
 async function addBusiness(){
   const title = document.getElementById("bizTitle").value;
   const desc = document.getElementById("bizDesc").value;
+  const image = document.getElementById("bizImage").value;
+const price = document.getElementById("bizPrice").value;
   const capital = document.getElementById("bizCapital").value;
   const pricing = document.getElementById("bizPricing").value;
   const clients = document.getElementById("bizClients").value;
@@ -2231,16 +2243,18 @@ async function addBusiness(){
 
   if(!title || !desc) return alert("Fill all fields");
 
-  await db.collection("businessIdeas").add({
-    title,
-    description: desc,
-    capital,
-    pricing,
-    clients,
-    type,
-    approved:false,
-    createdAt: Date.now()
-  });
+ await db.collection("businessIdeas").add({
+  title,
+  description: desc,
+  capital,
+  pricing,
+  clients,
+  type,
+  image,
+  price,
+  approved:false,
+  createdAt: Date.now()
+});
 
   alert("Business idea added!");
   loadBusiness();
@@ -2273,11 +2287,14 @@ function isAdmin(){
 auth.onAuthStateChanged(user=>{
   if(user && isAdmin()){
     document.getElementById("adminPanel").style.display = "block";
+    
   }
+  loadBusiness();
 });
 
 /* Load when page opens */
 document.querySelector('button[data-tab="business"]').addEventListener("click", ()=>{
+  show("business");
   loadBusiness();
 });
 
@@ -2411,6 +2428,10 @@ function generateCertificate(name, course){
 
   doc.save("certificate.pdf");
 }
+// 🔥 AUTO LOAD BUSINESS IDEAS WHEN PAGE OPENS
+document.addEventListener("DOMContentLoaded", () => {
+  loadBusiness();
+});
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
