@@ -543,6 +543,7 @@ color:white;">
   <button data-tab="myEnrollments">My Enrollments</button>
   <button data-tab="testimonials">Testimonials</button>
   <button data-tab="profile">Profile</button>
+  <button data-tab="business">Business Ideas</button>
   <button id="logout">Logout</button>
 </nav>
 
@@ -587,6 +588,40 @@ color:white;">
   <textarea id="bioInput" placeholder="Short Bio"></textarea>
   <button id="saveProfile">Save</button>
   <p>Contact Support: <a href="https://wa.me/260776942402" target="_blank">WhatsApp</a> / hbgraphics40@gmail.com</p>
+</section>
+
+<section id="business">
+  <h3>🇿🇲 Zambian Business Ideas</h3>
+
+  <input id="bizSearch" placeholder="Search business ideas...">
+
+  <div>
+    <button class="filterBtn active" onclick="filterBiz('all')">All</button>
+    <button class="filterBtn" onclick="filterBiz('free')">Free</button>
+    <button class="filterBtn" onclick="filterBiz('premium')">Premium</button>
+  </div>
+
+  <div id="businessList"></div>
+
+  <hr style="margin:20px 0;">
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" style="display:none;">
+    <h4>Admin Panel</h4>
+
+    <input id="bizTitle" placeholder="Business Title">
+    <textarea id="bizDesc" placeholder="Description"></textarea>
+    <input id="bizCapital" placeholder="Capital Needed (e.g K500 - K2000)">
+    <input id="bizPricing" placeholder="Pricing Strategy">
+    <input id="bizClients" placeholder="Where to find clients">
+    
+    <select id="bizType">
+      <option value="free">Free</option>
+      <option value="premium">Premium</option>
+    </select>
+
+    <button onclick="addBusiness()">Add Business Idea</button>
+  </div>
 </section>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -867,8 +902,8 @@ const enrollmentsSnap = auth.currentUser
     if(term && !d.title.toLowerCase().includes(term)) return;
     if(filterType==="free" && d.price>0) return;
     if(filterType==="premium" && d.price<=0) return;
-    if(grid.innerHTML === ""){
-  grid.innerHTML = "<p style='color:white;'></p>";
+    if(grid.children.length === 0){
+  grid.innerHTML = "<p style='color:white;'>No courses found</p>";
 }
 
     const ratingData = ratingsMap[doc.id] || {total:0,count:0};
@@ -1617,7 +1652,7 @@ function renderLesson(){
 
   content.innerHTML = `
   
-<div style="background:#000;border-radius:12px;overflow:hidden;<div style="
+<div style="
   width:100%;
   max-width:900px;
   margin:auto;
@@ -1625,17 +1660,14 @@ function renderLesson(){
   border-radius:12px;
   overflow:hidden;
 ">
-display:flex<div style="
+<div style="
   width:100%;
-  max-width:500px;
+  max-width:900px;
   margin:auto;
-  aspect-ratio:1/1;
   background:#000;
   border-radius:12px;
   overflow:hidden;
   display:flex;
-  align-items:center;
-  justify-content:center;
 ">
   
   ${
@@ -1748,7 +1780,6 @@ setTimeout(() => {
 
   if (video) {
       // required for autoplay
-   (err => console.log("Autoplay blocked:", err));
   }
 }, 300);
   // 🎬 VIDEO AUTO COMPLETE
@@ -2131,6 +2162,254 @@ const video = document.getElementById("lessonVideo");
 if (video) {
   video.addEventListener("contextmenu", e => e.preventDefault());
   video.addEventListener("touchstart", e => e.preventDefault());
+}
+
+/* ================= BUSINESS IDEAS SYSTEM ================= */
+
+let bizFilter = "all";
+
+/* Load Business Ideas */
+async function loadBusiness(){
+    const term = document.getElementById("bizSearch").value.toLowerCase();
+    
+  const snap = await db.collection("businessIdeas").get();
+
+  const list = document.getElementById("businessList");
+  list.innerHTML = "";
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+    if(term && !d.title.toLowerCase().includes(term)) return;
+
+    if(bizFilter !== "all" && d.type !== bizFilter) return;
+
+    const card = document.createElement("div");
+    card.className = "card show";
+
+    card.innerHTML = `
+  <h4>${d.title}</h4>
+  <p>${d.description.substring(0,80)}...</p>
+
+  <p><b>💰 Capital:</b> ${d.capital}</p>
+
+  ${
+    d.type === "premium"
+    ? `<button onclick="openBusiness('${doc.id}', true)">🔒 Premium</button>`
+    : `<button onclick="openBusiness('${doc.id}', false)">View</button>`
+  }
+
+  ${d.featured ? '<span class="badge approved">🔥 Trending</span>' : ''}
+
+  ${
+    isAdmin()
+    ? `
+    <button onclick="approveBiz('${doc.id}')">Approve</button>
+    <button onclick="deleteBiz('${doc.id}')">Delete</button>
+    `
+    : ""
+  }
+`;
+
+    list.appendChild(card);
+  });
+}
+
+/* Filter */
+function filterBiz(type){
+  bizFilter = type;
+  loadBusiness();
+}
+
+/* Add Business */
+async function addBusiness(){
+  const title = document.getElementById("bizTitle").value;
+  const desc = document.getElementById("bizDesc").value;
+  const capital = document.getElementById("bizCapital").value;
+  const pricing = document.getElementById("bizPricing").value;
+  const clients = document.getElementById("bizClients").value;
+  const type = document.getElementById("bizType").value;
+
+  if(!title || !desc) return alert("Fill all fields");
+
+  await db.collection("businessIdeas").add({
+    title,
+    description: desc,
+    capital,
+    pricing,
+    clients,
+    type,
+    approved:false,
+    createdAt: Date.now()
+  });
+
+  alert("Business idea added!");
+  loadBusiness();
+}
+
+/* Approve */
+async function approveBiz(id){
+  await db.collection("businessIdeas").doc(id).update({
+    approved:true
+  });
+  loadBusiness();
+}
+
+/* Delete */
+async function deleteBiz(id){
+  await db.collection("businessIdeas").doc(id).delete();
+  loadBusiness();
+}
+
+/* Admin Check */
+function isAdmin(){
+  const user = auth.currentUser;
+  if(!user) return false;
+
+  // 🔥 CHANGE THIS EMAIL TO YOURS
+  return user.email === "your@email.com";
+}
+
+/* Show Admin Panel */
+auth.onAuthStateChanged(user=>{
+  if(user && isAdmin()){
+    document.getElementById("adminPanel").style.display = "block";
+  }
+});
+
+/* Load when page opens */
+document.querySelector('button[data-tab="business"]').addEventListener("click", ()=>{
+  loadBusiness();
+});
+
+async function openBusiness(id, isPremium){
+
+  const doc = await db.collection("businessIdeas").doc(id).get();
+  const d = doc.data();
+
+  if(isPremium && !isPremiumUnlocked()){
+    showPaymentModal(id);
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:12px;width:90%;max-width:500px;">
+      
+      <h2>${d.title}</h2>
+      <p>${d.description}</p>
+
+      <p><b>💰 Capital:</b> ${d.capital}</p>
+      <p><b>💵 Pricing:</b> ${d.pricing}</p>
+      <p><b>🎯 Clients:</b> ${d.clients}</p>
+
+      <hr>
+
+      <h4>📊 Profit Calculator</h4>
+      <input id="cost" placeholder="Cost per item">
+      <input id="price" placeholder="Selling price">
+      <input id="qty" placeholder="Quantity">
+
+      <button onclick="calcProfit()">Calculate</button>
+
+      <p id="profitResult"></p>
+
+      <button onclick="this.closest('div').parentElement.remove()">Close</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function calcProfit(){
+  const cost = Number(document.getElementById("cost").value);
+  const price = Number(document.getElementById("price").value);
+  const qty = Number(document.getElementById("qty").value);
+
+  if(!cost || !price || !qty){
+    return alert("Enter all values");
+  }
+
+  const profit = (price - cost) * qty;
+
+  document.getElementById("profitResult").innerText =
+    "Estimated Profit: K" + profit;
+}
+
+function isPremiumUnlocked(){
+  return localStorage.getItem("premiumBusiness") === "true";
+}
+
+function showPaymentModal(){
+
+  const modal = document.createElement("div");
+
+  modal.style = `
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:10px;width:90%;max-width:400px;">
+      
+      <h3>🔒 Unlock Premium Ideas</h3>
+
+      <p><b>💰 Price:</b> K50</p>
+
+      <p>Pay via Airtel Money:</p>
+      <p><b>📱 0776942402</b></p>
+      <p><b>👤 Honest Bulilu</b></p>
+
+      <input type="file" id="proof">
+
+      <button onclick="confirmPayment()">Submit Proof</button>
+
+      <button onclick="this.closest('div').parentElement.remove()">Cancel</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function confirmPayment(){
+  const file = document.getElementById("proof").files[0];
+
+  if(!file){
+    return alert("Upload proof first");
+  }
+
+  localStorage.setItem("premiumBusiness","true");
+
+  alert("✅ Premium unlocked!");
+  location.reload();
+}
+
+document.getElementById("bizSearch").addEventListener("input", loadBusiness);
+
+function generateCertificate(name, course){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text("Certificate of Completion", 50, 40);
+  doc.text(name, 50, 60);
+  doc.text("Completed: " + course, 50, 80);
+
+  doc.save("certificate.pdf");
 }
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
