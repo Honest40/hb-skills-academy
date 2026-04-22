@@ -270,7 +270,6 @@ video, iframe{
   height:auto;
   max-height:70vh;
   object-fit:contain;
-}/* keeps image nicely cropped */
   border-radius:10px;
   margin-top:10px;
 }
@@ -1781,6 +1780,8 @@ function renderLesson(){
   
 
 content.innerHTML = `
+setTimeout(() => {
+  const video = document.getElementById("lessonVideo");
 <div class="lesson-wrapper">
 
   <!-- VIDEO / MEDIA -->
@@ -1807,16 +1808,13 @@ content.innerHTML = `
   const video = document.getElementById("lessonVideo");
 
   if (video) {
-    video.muted = true; // allows autoplay
+    video.muted = true;
     video.play().catch(() => {});
-
-    // 🔥 AUTO NEXT WHEN FINISHED
     video.onended = () => {
       nextLesson();
     };
   }
 }, 300);
-
   <!-- CONTENT -->
   <div class="lesson-body">
 
@@ -1875,11 +1873,15 @@ setTimeout(() => {
 }
 
   // ⏭ Next lesson
-  window.nextLesson = function(){
-    localStorage.setItem("lastLesson_" + courseId, window.currentIndex + 1);
+window.nextLesson = function(){
 
-    if(window.currentIndex === window.lessons.length - 1){
+  if(window.currentIndex < window.lessons.length - 1){
+    window.currentIndex++;
+    renderLesson();
+    return;
+  }
 
+  // only when finished
   notify("🎓 Course Completed!", "success");
 
   generateCertificate(
@@ -1887,38 +1889,10 @@ setTimeout(() => {
     courseCheck.title
   );
 
-  // 🔥 redirect to certificate screen
   setTimeout(() => {
-    alert("Your certificate is ready!");
+    loadQuiz(courseId);
   }, 1000);
-
-  return;
-} else {
-     notify("🎓 Course Completed!", "success");
-
-generateCertificate(
-  auth.currentUser.email,
-  courseCheck.title
-);
-
-loadQuiz(courseId);
-      setTimeout(() => loadQuiz(courseId), 1000);
-    }
-  };
-
-setTimeout(() => {
-  const video = document.getElementById("lessonVideo");
-
-  if (video && lesson.type === "video") {
-    video.src = lesson.url;   // 🔥 THIS WAS MISSING
-    video.muted = true;
-    video.playsInline = true;
-
-    video.play().catch(err => {
-      console.log("Autoplay blocked:", err);
-    });
-  }
-}, 300);
+};
   // ⏮ Previous lesson
   window.prevLesson = function(){
     if(window.currentIndex > 0){
