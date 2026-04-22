@@ -2618,6 +2618,104 @@ function notify(msg, type = "info") {
   document.body.appendChild(n);
   setTimeout(() => n.remove(), 3000);
 }
+    /* --- LESSON LOADING LOGIC --- */
+
+async function openCourse(courseId) {
+    showSpinner();
+    try {
+        console.log("Fetching lessons for:", courseId);
+        
+        // 1. Fetch lessons from the sub-collection
+        const snap = await db.collection("courses")
+            .doc(courseId)
+            .collection("lessons")
+            .orderBy("order", "asc") // Ensure your lessons have an 'order' field (1, 2, 3...)
+            .get();
+
+        if (snap.empty) {
+            hideSpinner();
+            return alert("This course doesn't have any lessons yet.");
+        }
+
+        const lessons = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // 2. Clear screen and show the player
+        document.querySelectorAll("section").forEach(s => s.style.display = "none");
+        
+        const playerSection = document.createElement("section");
+        playerSection.id = "lessonPlayer";
+        playerSection.style.display = "block";
+        document.body.appendChild(playerSection);
+
+        renderPlayer(lessons, 0, courseId); // Start with the first lesson (index 0)
+
+    } catch (err) {
+        console.error("Error loading lessons:", err);
+        alert("Failed to load lessons. Check your internet connection.");
+    }
+    hideSpinner();
+}
+
+function renderPlayer(lessons, index, courseId) {
+    const lesson = lessons[index];
+    const player = document.getElementById("lessonPlayer");
+
+    player.innerHTML = `
+        <button onclick="show('courses')" style="background:#64748b; margin-bottom:15px;">← Back to Courses</button>
+        <div class="card netflix-card">
+            <h3>${lesson.title}</h3>
+            <div class="lesson-media">
+                ${renderMedia(lesson)}
+            </div>
+            <div class="lesson-body">
+                <p>${lesson.content || ""}</p>
+            </div>
+            
+            <div class="lesson-controls">
+                <button ${index === 0 ? 'disabled' : ''} onclick="prevLesson()">Previous</button>
+                <button ${index === lessons.length - 1 ? 'disabled' : ''} onclick="nextLesson()">Next</button>
+            </div>
+
+            <div class="lesson-list">
+                <h4>Course Content (${index + 1}/${lessons.length})</h4>
+                ${lessons.map((l, i) => `
+                    <div class="lesson-item ${i === index ? 'active' : ''}" onclick="jumpToLesson(${i})">
+                        ${i + 1}. ${l.title}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    // Internal navigation helpers
+    window.nextLesson = () => renderPlayer(lessons, index + 1, courseId);
+    window.prevLesson = () => renderPlayer(lessons, index - 1, courseId);
+    window.jumpToLesson = (newIndex) => renderPlayer(lessons, newIndex, courseId);
+}
+
+function renderMedia(lesson) {
+    if (!lesson.url) return `<p>No video available for this lesson.</p>`;
+    
+    if (lesson.type === "video") {
+        return `<video controls controlsList="nodownload" src="${lesson.url}" style="width:100%; border-radius:12px;"></video>`;
+    } else if (lesson.type === "iframe" || lesson.url.includes("youtube")) {
+        return `<iframe src="${lesson.url}" frameborder="0" allowfullscreen style="width:100%; height:300px;"></iframe>`;
+    } else {
+        return `<img src="${lesson.url}" style="width:100%; border-radius:12px;">`;
+    }
+}
+
+function showSpinner() {
+    document.getElementById("spinner").style.display = "block";
+}
+
+function hideSpinner() {
+    document.getElementById("spinner").style.display = "none";
+}
+
+function notify(msg, type) {
+    alert(msg); // You can replace this with a prettier toast notification later
+}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
