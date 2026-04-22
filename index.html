@@ -2,12 +2,59 @@
 <html lang="en">
 <head>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    
    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <meta charset="UTF-8">
 <title>HB Skills Academy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <style>
+
+.floating{
+  position:fixed;
+  top:-50px;
+  font-size:20px;
+  animation:floatDown 6s linear infinite;
+  opacity:0.7;
+}
+
+@keyframes floatDown{
+  to{
+    transform:translateY(110vh);
+    opacity:0;
+  }
+}
+
+/* 🔥 MOBILE PERFECT LAYOUT */
+@media(max-width:600px){
+
+  body{
+    font-size:14px;
+  }
+
+  header{
+    padding:10px;
+  }
+
+  .card{
+    padding:12px;
+  }
+
+  button{
+    padding:10px;
+    font-size:14px;
+  }
+
+  input, textarea{
+    font-size:14px;
+  }
+
+  .grid{
+    grid-template-columns:1fr; /* single column on mobile */
+  }
+
+}
 
 video {
   -webkit-touch-callout: none;
@@ -95,13 +142,13 @@ video {
 }
 
 :root{
-  --primary:#2563eb;
-  --secondary:#0ea5e9;
-  --accent:#22c55e;
+  --primary:#4f46e5;   /* modern purple-blue */
+  --secondary:#06b6d4; /* cyan */
+  --accent:#22c55e;    /* green */
   --warning:#f59e0b;
-  --dark:#0f172a;
-  --light:#f8fafc;
-  --card:#ffffff;
+  --dark:#020617;      /* deeper dark */
+  --light:#f1f5f9;
+  --card:#0f172a;
 }
 
 /* RESET */
@@ -112,9 +159,8 @@ video {
 }
 
 body{
-  font-family:'Segoe UI',sans-serif;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
-  color:#1e293b;
+  background:linear-gradient(135deg,#020617,#0f172a,#1e293b);
+  color:#e2e8f0;
 }
 
 /* HEADER */
@@ -595,11 +641,12 @@ color:white;">
     
     <section id="hero" style="display:block;text-align:center;padding:60px 20px;color:#fff;">
 <h1 class="hero-title">
-  Learn Skills That Make You Money 💸
+  🚀 Learn Digital Skills That Pay You Forever
 </h1>
-  <p style="opacity:0.8;margin-top:10px;">
-    Join HB Skills Academy and start learning today.
-  </p>
+
+<p style="opacity:0.85;margin-top:10px;">
+  Build real skills. Start earning. Change your future today.
+</p>
 
   <button onclick="document.getElementById('authBox').scrollIntoView({behavior:'smooth'})">
     Get Started
@@ -669,7 +716,7 @@ color:white;">
     <button class="filterBtn" data-filter="free">Free</button>
     <button class="filterBtn" data-filter="premium">Premium</button>
   </div>
-  <div id="courseList"></div>
+ <div id="courseList" style="overflow-x:auto;display:flex;gap:15px;padding:10px;"></div>
 </section>
 
 
@@ -745,6 +792,7 @@ color:white;">
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
+        floatingIcons();
   console.log("App loaded...");
 });
 firebase.initializeApp({
@@ -809,7 +857,9 @@ document.querySelectorAll("nav button[data-tab]").forEach(b=>{
     const tab = b.dataset.tab;
 
     show(tab);
-    nav.style.display = "none";
+   if(window.innerWidth < 768){
+  nav.style.display = "none";
+}
 
     // 🔥 ADD THIS
     if(tab === "business"){
@@ -912,16 +962,21 @@ auth.onAuthStateChanged(u => {
   document.getElementById("globalLoader").style.display = "none";
 
   if (u) {
+      showLearningTip();
       db.collection("users").doc(u.uid).get().then(doc=>{
   if(doc.exists){
     const data = doc.data();
     document.getElementById("welcomeUser").innerText =
       "👋 " + (data.name || "User");
   }
+  if(u){
+  speak("Welcome to HB Skills Academy. Start learning and grow your future.");
+}
 });
       notify("Welcome back 👋", "info");
     authBox.style.display = "none";
     nav.style.display = "flex";
+    
 
     show("courses");
 
@@ -1034,7 +1089,8 @@ const enrollmentsSnap = auth.currentUser
 
     const card = document.createElement("div");
     playSound("success");
-   card.className="card show netflix-card";
+  card.className="card show netflix-card";
+card.style.minWidth = "260px";
     card.innerHTML = `
 ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img" loading="lazy" style="height:200px;">` : ``}
 
@@ -1782,7 +1838,11 @@ function renderLesson(){
 
   if(lesson.type === "video"){
     mediaHTML = `
-      <video id="lessonVideo" controls controlsList="nodownload">
+     <video id="lessonVideo"
+  controls
+  controlsList="nodownload noplaybackrate noremoteplayback"
+  disablePictureInPicture
+  oncontextmenu="return false;">
         <source src="${lesson.url}" type="video/mp4">
       </video>
     `;
@@ -2500,6 +2560,42 @@ document.addEventListener("touchend", e => {
 
   if (startX - endX > 50) {
     nextLesson(); // swipe left
+  }
+});
+function floatingIcons(){
+  const icons = ["💻","💰","📚","🔥","🚀"];
+
+  setInterval(()=>{
+    const el = document.createElement("div");
+    el.className = "floating";
+    el.innerText = icons[Math.floor(Math.random()*icons.length)];
+    el.style.left = Math.random()*100 + "%";
+
+    document.body.appendChild(el);
+
+    setTimeout(()=>el.remove(),6000);
+  },1000);
+}
+function showLearningTip(){
+  const tips = [
+    "💡 Skills = Money. Keep learning!",
+    "🚀 Small progress daily = big success!",
+    "🔥 You are building your future right now!",
+    "💻 Digital skills can change your life.",
+    "🎯 Stay consistent, results will come!"
+  ];
+
+  const tip = tips[Math.floor(Math.random()*tips.length)];
+  notify(tip, "info");
+}
+
+document.querySelectorAll("img").forEach(img=>{
+  img.setAttribute("draggable","false");
+});
+
+document.addEventListener("keydown", function(e){
+  if(e.key === "PrintScreen"){
+    alert("Screenshots disabled");
   }
 });
 </script>
