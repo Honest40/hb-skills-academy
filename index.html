@@ -1893,6 +1893,20 @@ window.nextLesson = function(){
     loadQuiz(courseId);
   }, 1000);
 };
+
+setTimeout(() => {
+  const video = document.getElementById("lessonVideo");
+
+  if (video && lesson.type === "video") {
+    video.src = lesson.url;   // 🔥 THIS WAS MISSING
+    video.muted = true;
+    video.playsInline = true;
+
+    video.play().catch(err => {
+      console.log("Autoplay blocked:", err);
+    });
+  }
+}, 300);
   // ⏮ Previous lesson
   window.prevLesson = function(){
     if(window.currentIndex > 0){
@@ -2522,200 +2536,6 @@ document.addEventListener("touchend", e => {
     nextLesson(); // swipe left
   }
 });
-
-/* Save Profile Logic */
-document.getElementById("saveProfile").onclick = async () => {
-  if (!auth.currentUser) return alert("Login first");
-  try {
-    await db.collection("users").doc(auth.currentUser.uid).update({
-      name: nameInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      bio: bioInput.value.trim()
-    });
-    alert("Profile updated successfully! ✅");
-    location.reload(); // Refresh to update welcome message
-  } catch (err) {
-    alert("Error updating profile: " + err.message);
-  }
-};
-
-/* Open Course & Lesson Player */
-async function openCourse(courseId) {
-  const lessonsSnap = await db.collection("courses").doc(courseId).collection("lessons").orderBy("order", "asc").get();
-  
-  if (lessonsSnap.empty) {
-    return alert("No lessons available for this course yet.");
-  }
-
-  const lessons = lessonsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  renderPlayer(lessons, courseId);
-}
-
-function renderPlayer(lessons, courseId) {
-  let currentIdx = 0;
-
-  const modal = document.createElement("div");
-  modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:10000; overflow-y:auto; color:white; padding:20px;";
-  
-  const updateContent = () => {
-    const lesson = lessons[currentIdx];
-    modal.innerHTML = `
-      <div class="lesson-wrapper">
-        <button onclick="this.parentElement.parentElement.remove()" style="background:red; float:right;">✕ Close</button>
-        <h2>${lesson.title}</h2>
-        <div class="lesson-media">
-          ${lesson.type === 'video' ? `<video src="${lesson.url}" controls autoplay style="width:100%;"></video>` : `<img src="${lesson.url}" style="width:100%;">`}
-        </div>
-        <div class="lesson-body"><p>${lesson.content || ""}</p></div>
-        <div class="lesson-controls">
-          <button id="prevBtn" ${currentIdx === 0 ? 'disabled' : ''}>Previous</button>
-          <button id="nextBtn">${currentIdx === lessons.length - 1 ? 'Finish' : 'Next'}</button>
-        </div>
-        <div class="lesson-list">
-          ${lessons.map((l, i) => `<div class="lesson-item ${i === currentIdx ? 'active' : ''}" onclick="window.jumpTo(${i})">${i + 1}. ${l.title}</div>`).join("")}
-        </div>
-      </div>
-    `;
-
-    modal.querySelector("#nextBtn").onclick = () => {
-      if (currentIdx < lessons.length - 1) {
-        currentIdx++;
-        updateContent();
-      } else {
-        alert("Course Completed! 🎉");
-        modal.remove();
-      }
-    };
-    
-    modal.querySelector("#prevBtn").onclick = () => {
-      if (currentIdx > 0) {
-        currentIdx--;
-        updateContent();
-      }
-    };
-  };
-
-  window.jumpTo = (i) => { currentIdx = i; updateContent(); };
-  updateContent();
-  document.body.appendChild(modal);
-}
-
-/* Business Ideas Filter */
-function filterBiz(type) {
-  const cards = document.querySelectorAll("#businessList .card");
-  cards.forEach(card => {
-    if (type === 'all') card.style.display = "block";
-    else if (card.dataset.type === type) card.style.display = "block";
-    else card.style.display = "none";
-  });
-}
-
-/* Utility: Notify System */
-function notify(msg, type = "info") {
-  const n = document.createElement("div");
-  n.style = `position:fixed; bottom:20px; right:20px; padding:15px 25px; border-radius:8px; color:#fff; z-index:9999; transition:0.5s; background:${type === 'error' ? '#ef4444' : '#22c55e'}`;
-  n.innerText = msg;
-  document.body.appendChild(n);
-  setTimeout(() => n.remove(), 3000);
-}
-    /* --- LESSON LOADING LOGIC --- */
-
-async function openCourse(courseId) {
-    showSpinner();
-    try {
-        console.log("Fetching lessons for:", courseId);
-        
-        // 1. Fetch lessons from the sub-collection
-        const snap = await db.collection("courses")
-            .doc(courseId)
-            .collection("lessons")
-            .orderBy("order", "asc") // Ensure your lessons have an 'order' field (1, 2, 3...)
-            .get();
-
-        if (snap.empty) {
-            hideSpinner();
-            return alert("This course doesn't have any lessons yet.");
-        }
-
-        const lessons = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // 2. Clear screen and show the player
-        document.querySelectorAll("section").forEach(s => s.style.display = "none");
-        
-        const playerSection = document.createElement("section");
-        playerSection.id = "lessonPlayer";
-        playerSection.style.display = "block";
-        document.body.appendChild(playerSection);
-
-        renderPlayer(lessons, 0, courseId); // Start with the first lesson (index 0)
-
-    } catch (err) {
-        console.error("Error loading lessons:", err);
-        alert("Failed to load lessons. Check your internet connection.");
-    }
-    hideSpinner();
-}
-
-function renderPlayer(lessons, index, courseId) {
-    const lesson = lessons[index];
-    const player = document.getElementById("lessonPlayer");
-
-    player.innerHTML = `
-        <button onclick="show('courses')" style="background:#64748b; margin-bottom:15px;">← Back to Courses</button>
-        <div class="card netflix-card">
-            <h3>${lesson.title}</h3>
-            <div class="lesson-media">
-                ${renderMedia(lesson)}
-            </div>
-            <div class="lesson-body">
-                <p>${lesson.content || ""}</p>
-            </div>
-            
-            <div class="lesson-controls">
-                <button ${index === 0 ? 'disabled' : ''} onclick="prevLesson()">Previous</button>
-                <button ${index === lessons.length - 1 ? 'disabled' : ''} onclick="nextLesson()">Next</button>
-            </div>
-
-            <div class="lesson-list">
-                <h4>Course Content (${index + 1}/${lessons.length})</h4>
-                ${lessons.map((l, i) => `
-                    <div class="lesson-item ${i === index ? 'active' : ''}" onclick="jumpToLesson(${i})">
-                        ${i + 1}. ${l.title}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-
-    // Internal navigation helpers
-    window.nextLesson = () => renderPlayer(lessons, index + 1, courseId);
-    window.prevLesson = () => renderPlayer(lessons, index - 1, courseId);
-    window.jumpToLesson = (newIndex) => renderPlayer(lessons, newIndex, courseId);
-}
-
-function renderMedia(lesson) {
-    if (!lesson.url) return `<p>No video available for this lesson.</p>`;
-    
-    if (lesson.type === "video") {
-        return `<video controls controlsList="nodownload" src="${lesson.url}" style="width:100%; border-radius:12px;"></video>`;
-    } else if (lesson.type === "iframe" || lesson.url.includes("youtube")) {
-        return `<iframe src="${lesson.url}" frameborder="0" allowfullscreen style="width:100%; height:300px;"></iframe>`;
-    } else {
-        return `<img src="${lesson.url}" style="width:100%; border-radius:12px;">`;
-    }
-}
-
-function showSpinner() {
-    document.getElementById("spinner").style.display = "block";
-}
-
-function hideSpinner() {
-    document.getElementById("spinner").style.display = "none";
-}
-
-function notify(msg, type) {
-    alert(msg); // You can replace this with a prettier toast notification later
-}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
