@@ -1103,7 +1103,7 @@ console.log("Lessons count:", snap.size);
         lesson.type === "video"
           ? `<video controls src="${lesson.url}" style="width:100%"></video>`
           : lesson.type === "image"
-          ? `<img src="${lesson.url}" style="width:100%">`
+          ? `<img src="${lesson.url}" draggable="false">`
           : `<iframe src="${lesson.url}" style="width:100%;height:300px;"></iframe>`
       )
     : `<p style="opacity:.6">No media available for this lesson</p>`
@@ -1400,20 +1400,20 @@ Name: Honest Bulilu`
 }
 async function markComplete(courseId, index){
 
-  localStorage.setItem(`progress_${courseId}_${index}`, true);
-
   const user = auth.currentUser;
   if(!user) return;
 
-  await db.collection("progress").add({
-    userId: user.uid,
-    courseId: courseId,
-    lessonIndex: index,
-    completed: true,
-    createdAt: Date.now()
-  });
+  await db.collection("progress")
+    .doc(user.uid + "_" + courseId + "_" + index)
+    .set({
+      userId: user.uid,
+      courseId,
+      lessonIndex: index,
+      completed: true,
+      updatedAt: Date.now()
+    });
 
-  toast("Lesson completed!");
+  toast("Lesson saved ✔");
 }
 
 async function loadQuiz(courseId){
@@ -1660,6 +1660,16 @@ async function openCourse(courseId){
   if(!user){
     alert("Login required");
     return;
+    const progressSnap = await db.collection("progress")
+  .where("userId","==",user.uid)
+  .where("courseId","==",courseId)
+  .get();
+
+let completedLessons = [];
+
+progressSnap.forEach(doc=>{
+  completedLessons.push(doc.data().lessonIndex);
+});
   }
 
   // 🔒 Check subscription for premium courses
@@ -1777,9 +1787,15 @@ content.innerHTML = `
   <div class="lesson-media">
     ${
       lesson.type === "video"
-      ? `<video id="lessonVideo" controls playsinline>
-           <source src="${lesson.url}" type="video/mp4">
-         </video>`
+      ? `<video 
+  id="lessonVideo" 
+  controls 
+  controlsList="nodownload noplaybackrate"
+  disablePictureInPicture
+  playsinline
+>
+  <source src="${lesson.url}" type="video/mp4">
+</video>`
       : getMediaType(lesson.url) === "youtube"
       ? `<iframe src="${convertToEmbed(lesson.url)}" allowfullscreen></iframe>`
       : lesson.type === "image"
@@ -1787,6 +1803,19 @@ content.innerHTML = `
       : `<iframe src="${lesson.url}"></iframe>`
     }
   </div>
+  setTimeout(() => {
+  const video = document.getElementById("lessonVideo");
+
+  if (video) {
+    video.muted = true; // allows autoplay
+    video.play().catch(() => {});
+
+    // 🔥 AUTO NEXT WHEN FINISHED
+    video.onended = () => {
+      nextLesson();
+    };
+  }
+}, 300);
 
   <!-- CONTENT -->
   <div class="lesson-body">
@@ -1849,10 +1878,22 @@ setTimeout(() => {
   window.nextLesson = function(){
     localStorage.setItem("lastLesson_" + courseId, window.currentIndex + 1);
 
-    if(window.currentIndex < window.lessons.length - 1){
-      window.currentIndex++;
-      renderLesson();
-    } else {
+    if(window.currentIndex === window.lessons.length - 1){
+
+  notify("🎓 Course Completed!", "success");
+
+  generateCertificate(
+    auth.currentUser.email,
+    courseCheck.title
+  );
+
+  // 🔥 redirect to certificate screen
+  setTimeout(() => {
+    alert("Your certificate is ready!");
+  }, 1000);
+
+  return;
+} else {
      notify("🎓 Course Completed!", "success");
 
 generateCertificate(
@@ -2185,10 +2226,11 @@ setTimeout(() => {
   }
 }, 500);
 document.addEventListener("contextmenu", e => e.preventDefault());
+
 document.addEventListener("keydown", (e) => {
   if (
     e.ctrlKey && 
-    (e.key === "s" || e.key === "u" || e.key === "c")
+    (e.key === "s" || e.key === "u" || e.key === "c" || e.key === "p")
   ) {
     e.preventDefault();
   }
@@ -2458,17 +2500,53 @@ document.getElementById("bizSearch").addEventListener("input", loadBusiness);
 
 function generateCertificate(name, course){
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF("landscape");
 
-  doc.text("Certificate of Completion", 50, 40);
-  doc.text(name, 50, 60);
-  doc.text("Completed: " + course, 50, 80);
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0,0,300,200,"F");
 
-  doc.save("certificate.pdf");
+  doc.setTextColor(255,255,255);
+
+  doc.setFontSize(28);
+  doc.text("CERTIFICATE OF COMPLETION", 60, 40);
+
+  doc.setFontSize(18);
+  doc.text("This is proudly awarded to", 90, 70);
+
+  doc.setFontSize(22);
+  doc.text(name, 120, 100);
+
+  doc.setFontSize(16);
+  doc.text("For successfully completing", 90, 120);
+
+  doc.setFontSize(20);
+  doc.text(course, 110, 140);
+
+  doc.setFontSize(12);
+  doc.text("HB Skills Academy", 120, 170);
+
+  doc.save("HB-Certificate.pdf");
 }
 // 🔥 AUTO LOAD BUSINESS IDEAS WHEN PAGE OPENS
 document.addEventListener("DOMContentLoaded", () => {
   loadBusiness();
+});
+let startX = 0;
+
+document.addEventListener("touchstart", e => {
+  startX = e.touches[0].clientX;
+});
+
+document.addEventListener("touchend", e => {
+  let endX = e.changedTouches[0].clientX;
+
+  if (endX - startX > 50) {
+    prevLesson(); // swipe right
+  }
+
+  if (startX - endX > 50) {
+    nextLesson(); // swipe left
+  }
 });
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
