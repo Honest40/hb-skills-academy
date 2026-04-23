@@ -1081,7 +1081,6 @@ const enrollmentsSnap = auth.currentUser
     if(filterType==="free" && d.price>0) return;
     if(filterType==="premium" && d.price<=0) return;
     if(grid.children.length === 0){
-  grid.innerHTML = "<p style='color:white;'>No courses found</p>";
 }
 
     const ratingData = ratingsMap[doc.id] || {total:0,count:0};
@@ -1543,7 +1542,10 @@ if(!allowed){
     
   }
 
-  function renderQuestion(){
+ function renderQuestion(){
+
+  // 🎯 store answers
+  window.userAnswers = window.userAnswers || {};
 
   const tips = [
     "💡 You are doing great!",
@@ -1567,98 +1569,132 @@ if(!allowed){
   speak(q.question);
 
   box.innerHTML = `
-    <div style="text-align:left">
+  <div style="
+    background:#0f172a;
+    padding:20px;
+    border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  ">
 
-      <!-- TOP BAR -->
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3>🧠 Quiz Time</h3>
-        <button onclick="exitQuiz()" style="background:red;">✖ Exit</button>
-      </div>
-
-      <button onclick="speak('${q.question}')" style="margin-top:5px;">🔊 Listen</button>
-
-      <p style="color:#22c55e;font-weight:bold;margin-top:10px;">
-        💪 Keep going! You are learning a valuable skill.
-      </p>
-
-      <p style="color:#3b82f6;font-weight:600;">
-        ${randomTip}
-      </p>
-
-      <!-- PROGRESS -->
-      <div style="display:flex;justify-content:space-between;margin-top:10px;">
-        <span>Question ${current+1} / ${questions.length}</span>
-        <span id="timer">⏱ 60s</span>
-      </div>
-
-      <div style="background:#eee;height:8px;border-radius:10px;margin:10px 0;">
-        <div style="
-          width:${((current)/questions.length)*100}%;
-          height:100%;
-          background:linear-gradient(90deg,#22c55e,#3b82f6);
-          border-radius:10px;
-        "></div>
-      </div>
-
-      <!-- QUESTION -->
-      <h3 style="margin:15px 0;">${q.question}</h3>
-
-      <!-- ANSWERS -->
-      <div id="answers"></div>
-
-      <!-- NAVIGATION -->
-      <div style="display:flex;gap:10px;margin-top:20px;">
-        <button onclick="prevQuestion()" ${current===0?'disabled':''}>⬅ Back</button>
-        <button onclick="nextQuestion()">Next ➡</button>
-      </div>
-
-      <p style="margin-top:10px;font-size:13px;color:#666;">
-        🔥 “Mistakes are part of learning. Don’t give up!”
-      </p>
-
+    <!-- TOP BAR -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="color:#fff;">🧠 Quiz</h3>
+      <button onclick="exitQuiz()" style="
+        background:#ef4444;
+        color:#fff;
+        border:none;
+        padding:8px 12px;
+        border-radius:8px;
+        cursor:pointer;
+      ">✖ Exit</button>
     </div>
+
+    <!-- TIP -->
+    <p style="color:#22c55e;font-weight:600;margin-top:10px;">
+      ${randomTip}
+    </p>
+
+    <!-- PROGRESS -->
+    <div style="display:flex;justify-content:space-between;margin-top:10px;color:#cbd5f5;">
+      <span>Question ${current+1} / ${questions.length}</span>
+      <span id="timer">⏱ 60s</span>
+    </div>
+
+    <div style="background:#1e293b;height:8px;border-radius:10px;margin:10px 0;">
+      <div style="
+        width:${((current)/questions.length)*100}%;
+        height:100%;
+        background:linear-gradient(90deg,#22c55e,#3b82f6);
+        border-radius:10px;
+      "></div>
+    </div>
+
+    <!-- QUESTION -->
+    <h3 style="color:#fff;margin:15px 0;">${q.question}</h3>
+
+    <!-- ANSWERS -->
+    <div id="answers"></div>
+
+    <!-- NAV -->
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="prevQuestion()" ${current===0?'disabled':''} style="
+        flex:1;
+        background:#334155;
+        color:white;
+        padding:10px;
+        border:none;
+        border-radius:10px;
+      ">⬅ Back</button>
+
+      <button id="nextBtn" onclick="nextQuestion()" disabled style="
+        flex:1;
+        background:linear-gradient(135deg,#22c55e,#3b82f6);
+        color:white;
+        padding:10px;
+        border:none;
+        border-radius:10px;
+      ">Next ➡</button>
+    </div>
+
+  </div>
   `;
 
   const answersDiv = box.querySelector("#answers");
+  const nextBtn = document.getElementById("nextBtn");
 
   ["A","B","C","D"].forEach(letter=>{
     const btn = document.createElement("button");
 
+    const isSelected = window.userAnswers[current] === letter;
+
     btn.innerText = `${letter}. ${q[letter]}`;
     btn.style = `
       width:100%;
-      padding:12px;
+      padding:14px;
       margin-top:10px;
       border:none;
-      border-radius:10px;
-      background:linear-gradient(135deg,#1e293b,#334155);
+      border-radius:12px;
+      background:${isSelected ? '#2563eb' : '#1e293b'};
       color:white;
       cursor:pointer;
       text-align:left;
+      transition:0.2s;
     `;
+
+    btn.onmouseover = () => btn.style.transform = "scale(1.02)";
+    btn.onmouseout = () => btn.style.transform = "scale(1)";
 
     btn.onclick = () => {
 
-      answersDiv.querySelectorAll("button").forEach(b=>b.disabled=true);
+      // save answer
+      window.userAnswers[current] = letter;
 
+      // enable next
+      nextBtn.disabled = false;
+
+      // reset styles
+      answersDiv.querySelectorAll("button").forEach(b=>{
+        b.style.background = "#1e293b";
+      });
+
+      // highlight selected
+      btn.style.background = "#2563eb";
+
+      // check answer (visual only)
       if(letter.toLowerCase() === q.answer.toLowerCase()){
-        btn.style.background = "green";
-        correctSound.play();
-        score++;
+        playSound("success");
       } else {
-        btn.style.background = "red";
-        wrongSound.play();
-
-        answersDiv.querySelectorAll("button").forEach(b=>{
-          if(b.innerText.startsWith(q.answer)){
-            b.style.background = "green";
-          }
-        });
+        playSound("error");
       }
     };
 
     answersDiv.appendChild(btn);
   });
+
+  // restore next button if already answered
+  if(window.userAnswers[current]){
+    nextBtn.disabled = false;
+  }
 
   startTimer();
 }
@@ -2205,13 +2241,9 @@ function speak(text){
 }
 
 function exitQuiz(){
-  document.querySelectorAll("div").forEach(d=>{
-    if(d.style.position === "fixed"){
-      d.remove();
-    }
-  });
+  const modal = document.querySelector("div[style*='position:fixed']");
+  if(modal) modal.remove();
 }
-
 function showSpinner(){
   document.getElementById("spinner").style.display = "block";
 }
