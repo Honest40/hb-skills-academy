@@ -1539,8 +1539,7 @@ if(!allowed){
         renderQuestion();
       }
     },1000);
-    const correctSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
-const wrongSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3");
+    
   }
 
  function renderQuestion(){
@@ -1667,6 +1666,12 @@ const wrongSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-
 
 btn.onclick = () => {
 
+  // save answer
+  window.userAnswers[current] = letter;
+
+  // enable next button
+  nextBtn.disabled = false;
+
   // disable all buttons after click
   answersDiv.querySelectorAll("button").forEach(b => b.disabled = true);
 
@@ -1674,28 +1679,28 @@ btn.onclick = () => {
 
   if(isCorrect){
 
+    // ✅ correct
     btn.style.background = "#22c55e"; // green
-    correctSound.currentTime = 0;
-    correctSound.play();
-
-    score++;
+    btn.style.color = "#fff";
+    playSound("success");
 
   } else {
 
+    // ❌ wrong
     btn.style.background = "#ef4444"; // red
-    wrongSound.currentTime = 0;
-    wrongSound.play();
+    btn.style.color = "#fff";
+    playSound("error");
 
-    // highlight correct answer
+    // ✅ show correct answer
     answersDiv.querySelectorAll("button").forEach(b => {
       if(b.innerText.startsWith(q.answer)){
         b.style.background = "#22c55e";
+        b.style.color = "#fff";
       }
     });
   }
 
 };
-
     answersDiv.appendChild(btn);
   });
 
