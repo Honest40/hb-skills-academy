@@ -1093,7 +1093,6 @@ const enrollmentsSnap = auth.currentUser
     const avg = ratingData.count ? (ratingData.total/ratingData.count).toFixed(1) : "No rating";
 
     const card = document.createElement("div");
-    playSound("success");
   card.className="card show netflix-card";
 card.style.minWidth = "260px";
     card.innerHTML = `
@@ -1477,11 +1476,12 @@ async function markComplete(courseId, index){
 }
 
 async function loadQuiz(courseId){
-    const allowed = await isApproved(courseId);
-if(!allowed){
-  alert("⛔ Quiz locked until admin approves your enrollment.");
-  return;
-}
+
+  const allowed = await isApproved(courseId);
+  if(!allowed){
+    alert("⛔ Quiz locked until admin approves your enrollment.");
+    return;
+  }
 
   const snap = await db.collection("courses")
     .doc(courseId)
@@ -1493,274 +1493,202 @@ if(!allowed){
     return;
   }
 
-  let questions = [];
-  snap.forEach(doc=>questions.push({...doc.data(), id:doc.id}));
+  const questions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   let current = 0;
   let score = 0;
-  let timeLeft = 60; // ⏱ seconds per question
+  let answered = false;
+  let userAnswers = [];
   let timer;
+  let timeLeft = 60;
+  
+  const STORAGE_KEY = "quiz_state_" + courseId;
 
   const modal = document.createElement("div");
-  modal.style = `
-    position:fixed;
-    top:0;left:0;
-    width:100%;height:100%;
-    background:rgba(0,0,0,0.7);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:1000;
-  `;
-
+ modal.style = `
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(2,6,23,0.92);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+  backdrop-filter: blur(8px);
+`;
   const box = document.createElement("div");
   box.style = `
-    background:#fff;
-    padding:20px;
-    border-radius:14px;
-    width:90%;
-    max-width:500px;
-    text-align:center;
-    animation:fadeIn 0.4s ease;
-  `;
+  background: linear-gradient(145deg,#0f172a,#1e293b);
+  color:#e2e8f0;
+  padding:20px;
+  border-radius:18px;
+  width:95%;
+  max-width:520px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,0.08);
+  font-family:Arial, sans-serif;
+`;
 
   modal.appendChild(box);
   document.body.appendChild(modal);
 
-  /* 🔊 SOUND EFFECTS */
-  const correctSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
-  const wrongSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3");
+  function play(sound){
+    try{
+      sound.currentTime = 0;
+      sound.play();
+    }catch(e){}
+  }
 
   function startTimer(){
     clearInterval(timer);
     timeLeft = 60;
 
-    timer = setInterval(()=>{
+    timer = setInterval(() => {
       timeLeft--;
-      document.getElementById("timer").innerText = `⏱ ${timeLeft}s`;
+      const t = document.getElementById("timer");
+      if(t) t.innerText = `⏱ ${timeLeft}s`;
 
       if(timeLeft <= 0){
         clearInterval(timer);
-        current++;
-        renderQuestion();
+        next();
       }
     },1000);
-    
   }
 
-function renderQuestion(){
+  function render(){
 
-  answered = false;
+    answered = false;
 
-  const tips = [
-    "💡 You are doing great!",
-    "🚀 Keep pushing forward!",
-    "🔥 Success is built step by step!",
-    "💪 Don’t stop now!",
-    "🎯 Focus and win!"
-  ];
+    if(current >= questions.length){
+      clearInterval(timer);
+      completeSound.play();
 
-  const randomTip = tips[Math.floor(Math.random() * tips.length)];
+      box.innerHTML = `
+        <h2>🎉 Quiz Completed</h2>
+        <p>Score: ${score}/${questions.length}</p>
+        <button onclick="this.closest('div').parentElement.remove()">Close</button>
+      `;
+      return;
+    }
 
-  if(current >= questions.length){
-    confettiBurst();
-    completeSound.play();
-    showResult();
-    return;
-  }
-
-  const q = questions[current];
-
-  box.innerHTML = `
-    <div style="text-align:left">
-
-      <!-- TOP -->
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3>🧠 Quiz Time</h3>
-        <button onclick="exitQuiz()" style="background:#ef4444;color:#fff;border:none;padding:8px 12px;border-radius:8px;">✖ Exit</button>
-      </div>
-
-      <button onclick="speak(\`${q.question}\`)" style="margin-top:5px;">🔊 Listen</button>
-
-      <p style="color:#22c55e;font-weight:bold;margin-top:10px;">
-        💪 Keep going!
-      </p>
-
-      <p style="color:#3b82f6;font-weight:600;">
-        ${randomTip}
-      </p>
-
-      <!-- PROGRESS -->
-      <div style="display:flex;justify-content:space-between;margin-top:10px;">
-        <span>Question ${current+1} / ${questions.length}</span>
-        <span id="timer">⏱ 60s</span>
-      </div>
-
-      <div style="background:#eee;height:8px;border-radius:10px;margin:10px 0;">
-        <div style="
-          width:${(current/questions.length)*100}%;
-          height:100%;
-          background:linear-gradient(90deg,#22c55e,#3b82f6);
-          border-radius:10px;
-        "></div>
-      </div>
-
-      <h3 style="margin:15px 0;">${q.question}</h3>
-
-      <div id="answers"></div>
-
-      <!-- NAV -->
-      <div style="display:flex;gap:10px;margin-top:20px;">
-        <button onclick="prevQuestion()" ${current===0?'disabled':''}>⬅ Back</button>
-        <button id="nextBtn" onclick="nextQuestion()" disabled>Next ➡</button>
-      </div>
-
-    </div>
-  `;
-
-  const answersDiv = box.querySelector("#answers");
-  const nextBtn = box.querySelector("#nextBtn");
-
-  ["A","B","C","D"].forEach(letter=>{
-    const btn = document.createElement("button");
-
-    btn.innerText = `${letter}. ${q[letter]}`;
-
-    btn.style = `
-      width:100%;
-      padding:12px;
-      margin-top:10px;
-      border:none;
-      border-radius:10px;
-      background:#1e293b;
-      color:white;
-      cursor:pointer;
-      text-align:left;
-      transition:0.3s;
-    `;
-
-    btn.onclick = () => {
-
-      if(answered) return;
-      answered = true;
-
-      userAnswers[current] = letter;
-      nextBtn.disabled = false;
-
-      answersDiv.querySelectorAll("button").forEach(b=>b.disabled=true);
-
-      const isCorrect = letter.toLowerCase() === q.answer.toLowerCase();
-
-      if(isCorrect){
-        btn.style.background = "#22c55e";
-        correctSound.currentTime = 0;
-        correctSound.play();
-        score++;
-      } else {
-        btn.style.background = "#ef4444";
-        wrongSound.currentTime = 0;
-        wrongSound.play();
-
-        answersDiv.querySelectorAll("button").forEach(b=>{
-          if(b.innerText.startsWith(q.answer)){
-            b.style.background = "#22c55e";
-          }
-        });
-      }
-    };
-
-    answersDiv.appendChild(btn);
-  });
-  
-  function nextQuestion(){
-  if(!userAnswers[current]){
-    alert("Select an answer first");
-    return;
-  }
-  current++;
-  renderQuestion();
-}
-
-function prevQuestion(){
-  if(current > 0){
-    current--;
-    renderQuestion();
-  }
-}
-
-  // 🔁 RESTORE PREVIOUS ANSWER (important UX)
-  if(userAnswers[current]){
-    const saved = userAnswers[current];
-    setTimeout(()=>{
-      answersDiv.querySelectorAll("button").forEach(btn=>{
-        if(btn.innerText.startsWith(saved)){
-          btn.click();
-        }
-      });
-    }, 200);
-  }
-
-  startTimer();
-}
-function nextQuestion(){
-  if(current < questions.length - 1){
-    current++;
-    renderQuestion();
-  } else {
-    showResult();
-  }
-}
-
-function prevQuestion(){
-  if(current > 0){
-    current--;
-    renderQuestion();
-  }
-}
-  async function showResult(){
-   
-    clearInterval(timer);
-
-    const passMark = Math.ceil(questions.length * 0.5);
-    const passed = score >= passMark;
-
-    // 📊 SAVE TO FIREBASE
-   await db.collection("results").add({
-  userId: auth.currentUser.uid,
-  courseId,
-  score,
-  total: questions.length,
-  passed,
-  createdAt: Date.now()
-});
-    
-    firebase.firestore().enablePersistence()
-.catch((err)=>{
-  console.log("Offline mode error:", err);
-});
+    const q = questions[current];
 
     box.innerHTML = `
-  <h2>🎉 Quiz Completed</h2>
+      <div>
+        <h3>Question ${current+1}/${questions.length}</h3>
+<div id="timer" style="
+  background:#0ea5e9;
+  color:white;
+  padding:6px 12px;
+  border-radius:20px;
+  display:inline-block;
+  font-size:13px;
+  font-weight:bold;
+">
+⏱ 60s
+</div>
 
-  <p style="font-size:18px;">
-    Score: ${score} / ${questions.length}
-  </p>
+       <h3 style="
+  color:#f8fafc;
+  font-size:18px;
+  margin:15px 0;
+  line-height:1.4;
+">
+  ${q.question}
+</h3>
 
-  <p style="color:${passed ? 'green':'red'};font-weight:bold;">
-    ${passed ? "🔥 Great job! You passed!" : "💪 Don’t worry, try again!"}
-  </p>
+        <div id="answers"></div>
 
-  <p style="margin-top:10px;color:#555;">
-    “Every expert was once a beginner.”
-  </p>
+       <button id="nextBtn" disabled style="
+  margin-top:15px;
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(90deg,#0ea5e9,#2563eb);
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  opacity:0.5;
+">
+Next ➡
+</button>
+      </div>
+    `;
 
-  <button onclick="this.closest('div').parentElement.remove()">
-    Close
-  </button>
+    const answersDiv = box.querySelector("#answers");
+    const nextBtn = box.querySelector("#nextBtn");
+
+    ["A","B","C","D"].forEach(letter => {
+
+      const btn = document.createElement("button");
+      btn.innerText = `${letter}. ${q[letter]}`;
+     btn.style = `
+  width:100%;
+  margin:8px 0;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:#1e293b;
+  color:#e2e8f0;
+  font-size:14px;
+  text-align:left;
+  cursor:pointer;
+  transition:0.25s;
+  border:1px solid rgba(255,255,255,0.05);
 `;
+
+      btn.onclick = () => {
+
+        if(answered) return;
+        answered = true;
+
+        userAnswers[current] = letter;
+        nextBtn.disabled = false;
+
+        answersDiv.querySelectorAll("button").forEach(b => b.disabled = true);
+
+        const correct = q.answer.toUpperCase();
+
+        if(letter === correct){
+         btn.style.background = "#16a34a";
+btn.style.boxShadow = "0 0 12px rgba(34,197,94,0.5)";
+btn.style.color = "white";
+          score++;
+          play(correctSound);
+        }else{
+         btn.style.background = "#dc2626";
+btn.style.boxShadow = "0 0 12px rgba(239,68,68,0.4)";
+btn.style.color = "white";
+          play(wrongSound);
+
+          answersDiv.querySelectorAll("button").forEach(b=>{
+            if(b.innerText.startsWith(correct)){
+              b.style.background = "#22c55e";
+            }
+          });
+        }
+      };
+
+      answersDiv.appendChild(btn);
+    });
+
+    nextBtn.onclick = next;
+
+    startTimer();
   }
 
-  renderQuestion();
+  function next(){
+    current++;
+    render();
+  }
+
+  window.exitQuiz = function(){
+    clearInterval(timer);
+    modal.remove();
+  };
+
+  render();
 }
 async function openCourse(courseId){
 
@@ -1963,10 +1891,12 @@ window.nextLesson = function(){
   // only when finished
   notify("🎓 Course Completed!", "success");
 
-  generateCertificate(
-    auth.currentUser.email,
-    courseCheck.title
-  );
+ const user = auth.currentUser;
+
+generateCertificate(
+  user?.displayName || user?.email || "Student",
+  courseCheck?.title || "Course"
+);
 
   setTimeout(() => {
     loadQuiz(courseId);
@@ -1987,12 +1917,12 @@ setTimeout(() => {
   }
 }, 300);
   // ⏮ Previous lesson
-  window.prevLesson = function(){
-    if(window.currentIndex > 0){
-      window.currentIndex--;
-      renderLesson();
-    }
-  };
+ window.prevQuestion = function () {
+  if (current > 0) {
+    current--;
+    renderQuestion();
+  }
+};
 
   renderLesson();
 }
@@ -2562,6 +2492,12 @@ function confirmPayment(){
 document.getElementById("bizSearch").addEventListener("input", loadBusiness);
 
 function generateCertificate(name, course){
+    doc.setFontSize(10);
+doc.text("Generated by HB Skills Academy", 100, 180);
+
+setTimeout(() => {
+  doc.save(`Certificate-${course}.pdf`);
+}, 500);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("landscape");
 
@@ -2651,6 +2587,9 @@ document.addEventListener("click", () => {
   correctSound.play().then(()=>correctSound.pause()).catch(()=>{});
   wrongSound.play().then(()=>wrongSound.pause()).catch(()=>{});
 }, { once: true });
+
+nextBtn.disabled = false;
+nextBtn.style.opacity = "1";
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
@@ -2659,3 +2598,4 @@ document.addEventListener("click", () => {
 </footer>
 </body>
 </html>
+
