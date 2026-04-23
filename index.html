@@ -970,9 +970,7 @@ auth.onAuthStateChanged(u => {
       "👋 " + (data.name || "User");
   }
   if(u){
-  setTimeout(()=>{
-  speak("Welcome to HB Skills Academy. Learn skills that can change your life.");
-},1000);
+  speak("Welcome to HB Skills Academy. Start learning and grow your future.");
 }
 });
       notify("Welcome back 👋", "info");
@@ -1082,7 +1080,9 @@ const enrollmentsSnap = auth.currentUser
     if(term && !d.title.toLowerCase().includes(term)) return;
     if(filterType==="free" && d.price>0) return;
     if(filterType==="premium" && d.price<=0) return;
- 
+    if(grid.children.length === 0){
+  grid.innerHTML = "<p style='color:white;'>No courses found</p>";
+}
 
     const ratingData = ratingsMap[doc.id] || {total:0,count:0};
     const avg = ratingData.count ? (ratingData.total/ratingData.count).toFixed(1) : "No rating";
@@ -1103,10 +1103,6 @@ ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img" loading="lazy" style
 <div style="margin-top:5px;">
   Rate:
   <span onclick="rateCourse('${doc.id}',1)">⭐</span>
-  <span onclick="rateCourse('${doc.id}',2)">⭐⭐</span>
-  <span onclick="rateCourse('${doc.id}',3)">⭐⭐⭐</span>
-  <span onclick="rateCourse('${doc.id}',4)">⭐⭐⭐⭐</span>
-  <span onclick="rateCourse('${doc.id}',5)">⭐⭐⭐⭐⭐</span>
 </div>
 
 ${
@@ -1899,51 +1895,25 @@ function renderLesson(){
   }
 }
   // ⏭ Next lesson
-// ⏭ Next lesson
-window.nextLesson = async function(){
+window.nextLesson = function(){
 
-  // 👉 If NOT last lesson → go next
   if(window.currentIndex < window.lessons.length - 1){
     window.currentIndex++;
     renderLesson();
     return;
   }
 
-  // ✅ ONLY WHEN COURSE FINISHED
+  // only when finished
+  notify("🎓 Course Completed!", "success");
 
-  playSound("complete");
-  confettiBurst();
+  generateCertificate(
+    auth.currentUser.email,
+    courseCheck.title
+  );
 
-  // get full name
-  const userDoc = await db.collection("users")
-    .doc(auth.currentUser.uid)
-    .get();
-
-  const fullName = userDoc.data().name || "Student";
-
-  // 🔊 voice
-  speak(`Congratulations ${fullName}, you have successfully completed this course`);
-
-  // 🎉 notification
-  notify(`🎓 Congratulations ${fullName}! Course Completed!`, "success");
-
-  // 🎬 optional screen
-  if(typeof showCompletionScreen === "function"){
-    showCompletionScreen(courseCheck.title);
-  }
-
-  // 📜 certificate
-  generateCertificate(fullName, courseCheck.title);
-
-  // 🎉 popup
-  setTimeout(() => {
-    alert("🎓 Congratulations!\n\nYour certificate has been downloaded.");
-  }, 600);
-
-  // 🧠 quiz
   setTimeout(() => {
     loadQuiz(courseId);
-  }, 1200);
+  }, 1000);
 };
 
 setTimeout(() => {
@@ -2542,44 +2512,30 @@ function generateCertificate(name, course){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("landscape");
 
-  // Background
   doc.setFillColor(15, 23, 42);
   doc.rect(0,0,300,200,"F");
 
-  // Border
-  doc.setDrawColor(34,197,94);
-  doc.setLineWidth(2);
-  doc.rect(5,5,290,190);
-
   doc.setTextColor(255,255,255);
 
-  // Title
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(30);
-  doc.text("CERTIFICATE OF COMPLETION", 50, 40);
+  doc.setFontSize(28);
+  doc.text("CERTIFICATE OF COMPLETION", 60, 40);
 
-  // Subtitle
-  doc.setFontSize(16);
-  doc.text("This certificate is proudly awarded to", 80, 70);
-
-  // Name
-  doc.setFontSize(26);
-  doc.setTextColor(34,197,94);
-  doc.text(name, 120, 100);
-
-  // Course
   doc.setFontSize(18);
-  doc.setTextColor(255,255,255);
-  doc.text("For successfully completing the course", 70, 125);
+  doc.text("This is proudly awarded to", 90, 70);
 
   doc.setFontSize(22);
-  doc.text(course, 110, 145);
+  doc.text(name, 120, 100);
 
-  // Footer
-  doc.setFontSize(14);
+  doc.setFontSize(16);
+  doc.text("For successfully completing", 90, 120);
+
+  doc.setFontSize(20);
+  doc.text(course, 110, 140);
+
+  doc.setFontSize(12);
   doc.text("HB Skills Academy", 120, 170);
 
-  doc.save(`${name}-certificate.pdf`);
+  doc.save("HB-Certificate.pdf");
 }
 // 🔥 AUTO LOAD BUSINESS IDEAS WHEN PAGE OPENS
 document.addEventListener("DOMContentLoaded", () => {
@@ -2638,34 +2594,6 @@ document.addEventListener("keydown", function(e){
     alert("Screenshots disabled");
   }
 });
-
-function showCompletionScreen(courseName){
-  const div = document.createElement("div");
-
-  div.style = `
-    position:fixed;
-    top:0;left:0;
-    width:100%;height:100%;
-    background:#020617;
-    color:white;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    z-index:99999;
-    text-align:center;
-  `;
-
-  div.innerHTML = `
-    <h1 style="font-size:40px;">🎉 Congratulations!</h1>
-    <p>You completed <b>${courseName}</b></p>
-    <button onclick="this.parentElement.remove()" style="margin-top:20px;">
-      Close
-    </button>
-  `;
-
-  document.body.appendChild(div);
-}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
