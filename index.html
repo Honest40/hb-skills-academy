@@ -1103,6 +1103,10 @@ ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img" loading="lazy" style
 <div style="margin-top:5px;">
   Rate:
   <span onclick="rateCourse('${doc.id}',1)">⭐</span>
+  <span onclick="rateCourse('${doc.id}',2)">⭐⭐</span>
+  <span onclick="rateCourse('${doc.id}',3)">⭐⭐⭐</span>
+  <span onclick="rateCourse('${doc.id}',4)">⭐⭐⭐⭐</span>
+  <span onclick="rateCourse('${doc.id}',5)">⭐⭐⭐⭐⭐</span>
 </div>
 
 ${
@@ -1540,126 +1544,139 @@ if(!allowed){
   }
 
   function renderQuestion(){
-      const tips = [
-  "💡 You are doing great!",
-  "🚀 Keep pushing forward!",
-  "🔥 Success is built step by step!",
-  "💪 Don’t stop now!",
-  "🎯 Focus and win!"
-];
 
+  const tips = [
+    "💡 You are doing great!",
+    "🚀 Keep pushing forward!",
+    "🔥 Success is built step by step!",
+    "💪 Don’t stop now!",
+    "🎯 Focus and win!"
+  ];
 
-const randomTip = tips[Math.floor(Math.random() * tips.length)];
- const completeSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3");
+  const randomTip = tips[Math.floor(Math.random() * tips.length)];
+  const completeSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3");
 
-    if(current >= questions.length){
-      showResult();
-confettiBurst();
-completeSound.play();
-      return;
-     
-confettiBurst();
-
-    }
-
-    const q = questions[current];
-    speak(
-  q.question
-);
-
-   box.innerHTML = `
-  <h3>🧠 Quiz Time</h3>
-  <button onclick="speak(q.question)">🔊 Listen</button>
-
-  <p style="color:#22c55e;font-weight:bold;">
-    💪 Keep going! You are learning a valuable skill.
-    <p style="color:#3b82f6;font-weight:600;">
-  ${randomTip}
-</p>
-  </p>
-
-  <div style="display:flex;justify-content:space-between;margin-top:10px;">
-    <span>Question ${current+1} / ${questions.length}</span>
-    <span id="timer">⏱ 60s</span>
-  </div>
-
-  <div style="background:#eee;height:8px;border-radius:10px;margin:10px 0;">
-    <div style="
-      width:${((current)/questions.length)*100}%;
-      height:100%;
-      background:linear-gradient(90deg,#22c55e,#3b82f6);
-      border-radius:10px;
-    "></div>
-  </div>
-
-  <h3 style="margin:15px 0;">${q.question}</h3>
-
-  <div id="answers"></div>
-
-  <p style="margin-top:10px;font-size:13px;color:#666;">
-    🔥 “Mistakes are part of learning. Don’t give up!”
-  </p>
-`;
-    const answersDiv = box.querySelector("#answers");
-
-    ["A","B","C","D"].forEach(letter=>{
-      const btn = document.createElement("button");
-
-      btn.innerText = `${letter}. ${q[letter]}`;
-btn.style = `
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:linear-gradient(135deg,#1e293b,#334155);
-  color:white;
-  cursor:pointer;
-  transition:0.3s;
-  text-align:left;
-`;
-btn.onmouseover = () => btn.style.transform = "scale(1.03)";
-btn.onmouseout = () => btn.style.transform = "scale(1)";
-
-      btn.onclick = () => {
-
-        answersDiv.querySelectorAll("button").forEach(b=>b.disabled=true);
-
-       if(letter.toLowerCase() === q.answer.toLowerCase()){
-          btn.style.background = "green";
-          correctSound.play();
-          score++;
-
-          // ✅ ONLY MOVE IF CORRECT
-          setTimeout(()=>{
-            current++;
-            renderQuestion();
-          },800);
-
-        }else{
-          btn.style.background = "red";
-          wrongSound.play();
-
-          // ❌ STAY ON SAME QUESTION
-          answersDiv.querySelectorAll("button").forEach(b=>{
-            if(b.innerText.startsWith(q.answer)){
-              b.style.background = "green";
-            }
-          });
-
-          // allow retry after short delay
-          setTimeout(()=>{
-            renderQuestion();
-          },1200);
-        }
-      };
-
-      answersDiv.appendChild(btn);
-    });
-
-    startTimer();
+  if(current >= questions.length){
+    confettiBurst();
+    completeSound.play();
+    showResult();
+    return;
   }
 
+  const q = questions[current];
+  speak(q.question);
+
+  box.innerHTML = `
+    <div style="text-align:left">
+
+      <!-- TOP BAR -->
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3>🧠 Quiz Time</h3>
+        <button onclick="exitQuiz()" style="background:red;">✖ Exit</button>
+      </div>
+
+      <button onclick="speak('${q.question}')" style="margin-top:5px;">🔊 Listen</button>
+
+      <p style="color:#22c55e;font-weight:bold;margin-top:10px;">
+        💪 Keep going! You are learning a valuable skill.
+      </p>
+
+      <p style="color:#3b82f6;font-weight:600;">
+        ${randomTip}
+      </p>
+
+      <!-- PROGRESS -->
+      <div style="display:flex;justify-content:space-between;margin-top:10px;">
+        <span>Question ${current+1} / ${questions.length}</span>
+        <span id="timer">⏱ 60s</span>
+      </div>
+
+      <div style="background:#eee;height:8px;border-radius:10px;margin:10px 0;">
+        <div style="
+          width:${((current)/questions.length)*100}%;
+          height:100%;
+          background:linear-gradient(90deg,#22c55e,#3b82f6);
+          border-radius:10px;
+        "></div>
+      </div>
+
+      <!-- QUESTION -->
+      <h3 style="margin:15px 0;">${q.question}</h3>
+
+      <!-- ANSWERS -->
+      <div id="answers"></div>
+
+      <!-- NAVIGATION -->
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="prevQuestion()" ${current===0?'disabled':''}>⬅ Back</button>
+        <button onclick="nextQuestion()">Next ➡</button>
+      </div>
+
+      <p style="margin-top:10px;font-size:13px;color:#666;">
+        🔥 “Mistakes are part of learning. Don’t give up!”
+      </p>
+
+    </div>
+  `;
+
+  const answersDiv = box.querySelector("#answers");
+
+  ["A","B","C","D"].forEach(letter=>{
+    const btn = document.createElement("button");
+
+    btn.innerText = `${letter}. ${q[letter]}`;
+    btn.style = `
+      width:100%;
+      padding:12px;
+      margin-top:10px;
+      border:none;
+      border-radius:10px;
+      background:linear-gradient(135deg,#1e293b,#334155);
+      color:white;
+      cursor:pointer;
+      text-align:left;
+    `;
+
+    btn.onclick = () => {
+
+      answersDiv.querySelectorAll("button").forEach(b=>b.disabled=true);
+
+      if(letter.toLowerCase() === q.answer.toLowerCase()){
+        btn.style.background = "green";
+        correctSound.play();
+        score++;
+      } else {
+        btn.style.background = "red";
+        wrongSound.play();
+
+        answersDiv.querySelectorAll("button").forEach(b=>{
+          if(b.innerText.startsWith(q.answer)){
+            b.style.background = "green";
+          }
+        });
+      }
+    };
+
+    answersDiv.appendChild(btn);
+  });
+
+  startTimer();
+}
+function nextQuestion(){
+  if(current < questions.length - 1){
+    current++;
+    renderQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function prevQuestion(){
+  if(current > 0){
+    current--;
+    renderQuestion();
+  }
+}
   async function showResult(){
    
     clearInterval(timer);
