@@ -1539,7 +1539,8 @@ if(!allowed){
         renderQuestion();
       }
     },1000);
-    
+    const correctSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
+const wrongSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3");
   }
 
  function renderQuestion(){
@@ -1664,29 +1665,36 @@ if(!allowed){
     btn.onmouseover = () => btn.style.transform = "scale(1.02)";
     btn.onmouseout = () => btn.style.transform = "scale(1)";
 
-    btn.onclick = () => {
+btn.onclick = () => {
 
-      // save answer
-      window.userAnswers[current] = letter;
+  // disable all buttons after click
+  answersDiv.querySelectorAll("button").forEach(b => b.disabled = true);
 
-      // enable next
-      nextBtn.disabled = false;
+  const isCorrect = letter.toLowerCase() === q.answer.toLowerCase();
 
-      // reset styles
-      answersDiv.querySelectorAll("button").forEach(b=>{
-        b.style.background = "#1e293b";
-      });
+  if(isCorrect){
 
-      // highlight selected
-      btn.style.background = "#2563eb";
+    btn.style.background = "#22c55e"; // green
+    correctSound.currentTime = 0;
+    correctSound.play();
 
-      // check answer (visual only)
-      if(letter.toLowerCase() === q.answer.toLowerCase()){
-        playSound("success");
-      } else {
-        playSound("error");
+    score++;
+
+  } else {
+
+    btn.style.background = "#ef4444"; // red
+    wrongSound.currentTime = 0;
+    wrongSound.play();
+
+    // highlight correct answer
+    answersDiv.querySelectorAll("button").forEach(b => {
+      if(b.innerText.startsWith(q.answer)){
+        b.style.background = "#22c55e";
       }
-    };
+    });
+  }
+
+};
 
     answersDiv.appendChild(btn);
   });
