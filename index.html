@@ -2656,6 +2656,14 @@ document.addEventListener("keydown", function(e){
     alert("Screenshots disabled");
   }
 });
+
+function playSound(type){
+  if(type === "success"){
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3").play();
+  } else {
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3").play();
+  }
+}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
