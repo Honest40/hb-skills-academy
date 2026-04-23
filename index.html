@@ -1899,28 +1899,51 @@ function renderLesson(){
   }
 }
   // ⏭ Next lesson
-window.nextLesson = function(){
-    showCompletionScreen(courseCheck.title);
+// ⏭ Next lesson
+window.nextLesson = async function(){
 
+  // 👉 If NOT last lesson → go next
   if(window.currentIndex < window.lessons.length - 1){
     window.currentIndex++;
     renderLesson();
     return;
   }
 
-  // only when finished
-  notify("🎉 Congratulations! You completed the course!", "success");
+  // ✅ ONLY WHEN COURSE FINISHED
 
-confettiBurst(); // animation
-playSound("complete"); // sound
+  playSound("complete");
+  confettiBurst();
 
-// 🔊 Voice message
-speak("Congratulations! You have successfully completed your course.");
+  // get full name
+  const userDoc = await db.collection("users")
+    .doc(auth.currentUser.uid)
+    .get();
 
-// 🎉 Big popup
-setTimeout(() => {
-  alert("🎓 Congratulations!\n\nYou have successfully completed this course.\nYour certificate is ready!");
-}, 500);
+  const fullName = userDoc.data().name || "Student";
+
+  // 🔊 voice
+  speak(`Congratulations ${fullName}, you have successfully completed this course`);
+
+  // 🎉 notification
+  notify(`🎓 Congratulations ${fullName}! Course Completed!`, "success");
+
+  // 🎬 optional screen
+  if(typeof showCompletionScreen === "function"){
+    showCompletionScreen(courseCheck.title);
+  }
+
+  // 📜 certificate
+  generateCertificate(fullName, courseCheck.title);
+
+  // 🎉 popup
+  setTimeout(() => {
+    alert("🎓 Congratulations!\n\nYour certificate has been downloaded.");
+  }, 600);
+
+  // 🧠 quiz
+  setTimeout(() => {
+    loadQuiz(courseId);
+  }, 1200);
 };
 
 setTimeout(() => {
