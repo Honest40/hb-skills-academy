@@ -509,48 +509,51 @@ header div:first-child{
 
 /* BODY */
 .lesson-body{
-  padding:16px;
+  padding:18px;
   background:#1e293b;
   color:#e2e8f0;
-  border-radius:12px;
-  line-height:1.7;
+  border-radius:14px;
+  line-height:1.8;
   font-size:15px;
+  margin-top:10px;
 }
 
-/* Proper spacing for text */
-.lesson-body h1,
-.lesson-body h2,
-.lesson-body h3{
-  margin:12px 0 8px;
-  line-height:1.3;
-}
-
-.lesson-body{
-  padding:16px;
-  background:#1e293b;
-  color:#e2e8f0;
-  border-radius:12px;
-  line-height:1.7;
-  font-size:15px;
-}
+/* spacing for text */
 .lesson-body p{
-  margin:10px 0;
+  margin:12px 0;
 }
 
 .lesson-body h1,
 .lesson-body h2,
 .lesson-body h3{
-  margin:14px 0 8px;
+  margin:16px 0 10px;
   line-height:1.3;
 }
 
-.lesson-body ul{
-  margin:10px 0;
-  padding-left:20px;
+/* lists spacing */
+.lesson-body ul,
+.lesson-body ol{
+  margin:12px 0;
+  padding-left:22px;
 }
 
 .lesson-body li{
-  margin-bottom:6px;
+  margin-bottom:8px;
+}
+
+/* make lesson feel like article */
+.lesson-wrapper{
+  display:flex;
+  flex-direction:column;
+  gap:22px;
+  padding:15px;
+}
+
+/* media separation */
+.lesson-media{
+  margin-bottom:10px;
+  border-radius:12px;
+  overflow:hidden;
 }
 /* PROGRESS */
 .progress-box{
@@ -1911,13 +1914,13 @@ function renderLesson(){
 
     </div>
   </div>
-  `
-  // 🔥 ALWAYS START LESSON FROM TOP
-window.scrollTo({
-  top: 0,
-  behavior: "smooth"
-});;
-
+  `;
+ setTimeout(() => {
+  document.querySelector(".lesson-wrapper")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}, 50);
   // ✅ HANDLE VIDEO AFTER RENDER
   const video = document.getElementById("lessonVideo");
 
