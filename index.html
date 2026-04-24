@@ -1870,8 +1870,7 @@ const snap = await db.collection("courses")
 
 console.log("Lessons loaded:", snap.size);
 
-window.lessons = [
-    window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0))];
+window.lessons = []
 snap.forEach(doc => {
   window.lessons.push(doc.data());
 });
@@ -2007,7 +2006,13 @@ ${lesson.description
   </div>
 
 </div>
+
 `;
+// ✅ ALWAYS START LESSON FROM TOP
+window.scrollTo({
+  top: 0,
+  behavior: "smooth"
+});
 
   // ✅ HANDLE VIDEO AFTER RENDER
   const video = document.getElementById("lessonVideo");
@@ -2016,16 +2021,13 @@ ${lesson.description
     video.onended = () => nextLesson();
   
   }
-      window.scrollTo({
-  top: 0,
-  behavior: "smooth"
-});
 }
   // ⏭ Next lesson
 window.nextLesson = function(){
 
   if(window.currentIndex < window.lessons.length - 1){
     window.currentIndex++;
+    window.lessons = window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
     renderLesson();
     return;
   }
