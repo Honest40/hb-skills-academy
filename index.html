@@ -585,58 +585,50 @@ header div:first-child{
   object-fit: contain;
 }
 
-/* text content */
-/* 📚 CLEAN & SPACIOUS LESSON UI */
+/* 📚 BALANCED CLEAN LESSON UI */
 .lesson-body {
   background: #1e293b;
   color: #e2e8f0;
-  padding: 30px;
-  border-radius: 16px;
-  font-size: 17px;
-  line-height: 1.8; /* Increases space between lines of text */
-  letter-spacing: 0.3px;
-  max-width: 800px;
-  margin: 20px auto;
-  
-  /* 🔥 THIS IS THE MAGIC LINE: It respects your original line breaks */
-  white-space: pre-wrap; 
+  padding: 22px;              /* reduced from 30px */
+  border-radius: 14px;
+  font-size: 15.5px;          /* slightly smaller */
+  line-height: 1.7;           /* tighter text */
+  letter-spacing: 0.2px;
+  max-width: 750px;
+  margin: 15px auto;
+
+  white-space: pre-wrap;
   word-wrap: break-word;
 }
 
-/* Add breathing room between different elements */
-.lesson-body h1, .lesson-body h2, .lesson-body h3 {
-  margin-top: 40px;
-  margin-bottom: 20px;
-  color: #60a5fa; /* Light blue for headings to make them pop */
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 10px;
+/* Headings */
+.lesson-body h1,
+.lesson-body h2,
+.lesson-body h3 {
+  margin-top: 24px;           /* reduced from 40px */
+  margin-bottom: 10px;        /* reduced from 20px */
+  color: #60a5fa;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 6px;
 }
 
+/* Paragraphs */
 .lesson-body p {
-  margin-bottom: 20px; /* Big gap between paragraphs */
+  margin-bottom: 12px;        /* reduced from 20px */
 }
 
-.lesson-body ul, .lesson-body ol {
-  margin: 20px 0;
-  padding-left: 25px;
+/* Lists */
+.lesson-body ul,
+.lesson-body ol {
+  margin: 12px 0;
+  padding-left: 22px;
 }
 
 .lesson-body li {
-  margin-bottom: 12px;
-}
-
-/* Custom Scrollbar for long lessons */
-.lesson-body::-webkit-scrollbar {
-  width: 8px;
-}
-.lesson-body::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 10px;
+  margin-bottom: 6px;         /* reduced from 12px */
 }
 </style>
 </head>
-
-
 
 <body>
     <div id="spinner" style="
