@@ -524,7 +524,21 @@ header div:first-child{
 
 /* BODY */
 .lesson-body{
-  padding:10px;
+  background:#ffffff;
+  color:#0f172a;
+  padding:16px;
+  border-radius:14px;
+  line-height:1.6;
+  font-size:15px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+.lesson-body h2{
+  border-left:4px solid #4f46e5;
+  padding-left:8px;
+}
+
+.lesson-body h3{
+  color:#2563eb;
 }
 
 /* PROGRESS */
@@ -618,11 +632,6 @@ header div:first-child{
   margin-bottom:6px;
 }
 
-/* remove excessive spacing from all elements */
-.lesson-body *{
-  margin-top:0;
-  margin-bottom:0;
-}
 /* 🎯 CLEAN LESSON CARD */
 .lesson-body{
   background:#ffffff;
@@ -631,6 +640,25 @@ header div:first-child{
   border-radius:12px;
   line-height:1.5;
   font-size:15px;
+}
+/* ✅ CLEAN SPACING */
+.lesson-body p{
+  margin:6px 0;
+  line-height:1.6;
+}
+
+.lesson-body h2,
+.lesson-body h3{
+  margin:10px 0 5px;
+}
+
+.lesson-body ul{
+  margin:6px 0;
+  padding-left:18px;
+}
+
+.lesson-body li{
+  margin-bottom:5px;
 }
 </style>
 </head>
@@ -1866,6 +1894,8 @@ window.currentIndex = Number(localStorage.getItem("lastLesson_" + courseId) || 0
 function renderLesson(){
 
   const lesson = window.lessons[window.currentIndex];
+  // ✅ FORCE LESSON ORDER
+window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
   const progressPercent = ((window.currentIndex + 1) / window.lessons.length) * 100;
 
   let mediaHTML = "";
@@ -2026,7 +2056,13 @@ generateCertificate(
   }
 };
 
-  renderLesson();
+ renderLesson();
+
+// 👇 PASTE DIRECTLY UNDER IT
+window.scrollTo({
+  top: 0,
+  behavior: "smooth"
+});
 }
 
 window.jumpToLesson = function(index){
@@ -2042,6 +2078,8 @@ const sounds = {
   upload: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"),
   complete: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3")
 };
+// ✅ Always start lesson from top
+window.scrollTo(0,0);
 
 function playSound(name){
   if(sounds[name]){
