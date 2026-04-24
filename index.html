@@ -669,6 +669,48 @@ header div:first-child{
 .lesson-media{
   margin-bottom: 20px;
 }
+/* 📚 FIX: CLEAN LESSON READING LAYOUT (IMPORTANT) */
+.lesson-wrapper{
+  max-width: 900px;
+  margin: auto;
+  padding: 25px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* readable article-style container */
+.lesson-body{
+  max-width: 750px;
+  margin: auto;
+  padding: 25px;
+  line-height: 1.9;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  background: #1e293b;
+  border-radius: 14px;
+}
+
+/* spacing fix */
+.lesson-body p{
+  margin: 14px 0;
+}
+
+.lesson-body h1,
+.lesson-body h2,
+.lesson-body h3{
+  margin: 18px 0 12px;
+}
+
+.lesson-body ul,
+.lesson-body ol{
+  margin: 14px 0;
+  padding-left: 24px;
+}
+
+.lesson-body li{
+  margin-bottom: 8px;
+}
 </style>
 </head>
 
@@ -1977,29 +2019,21 @@ window.nextLesson = function(){
   if(window.currentIndex < window.lessons.length - 1){
     window.currentIndex++;
     renderLesson();
+
+    // ✅ ALWAYS START FROM TOP
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }, 50);
+
     return;
   }
 
-  // only when finished
-  notify("🎓 Course Completed!", "success");
-
- const user = auth.currentUser;
-
-generateCertificate(
-  user?.displayName || user?.email || "Student",
-  courseCheck?.title || "Course"
-);
-
-  setTimeout(() => {
-    loadQuiz(courseId);
-  }, 1000);
-};
-  // ⏮ Previous lesson
- window.prevLesson = function(){
-  if(window.currentIndex > 0){
-    window.currentIndex--;
-    renderLesson();
-  }
+  notify("🎉 Congratulations! You completed the course!", "success");
+  confettiBurst();
+  playSound("complete");
 };
 
   renderLesson();
