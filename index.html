@@ -81,7 +81,6 @@ video {
     width:100%;
   }
 }
-}
 
 /* ===== TESTIMONIAL MODERN UI ===== */
 
@@ -1738,17 +1737,16 @@ async function openCourse(courseId){
   alert("Login required");
   return;
 
-// move this OUTSIDE
-const progressSnap = await db.collection("progress")
-  .where("userId","==",user.uid)
-  .where("courseId","==",courseId)
-  .get();
-
 let completedLessons = [];
 
 progressSnap.forEach(doc=>{
   completedLessons.push(doc.data().lessonIndex);
 });
+// move this OUTSIDE
+const progressSnap = await db.collection("progress")
+  .where("userId","==",user.uid)
+  .where("courseId","==",courseId)
+  .get();
   }
 
   // 🔒 Check subscription for premium courses
@@ -1951,10 +1949,10 @@ generateCertificate(
   }, 1000);
 };
   // ⏮ Previous lesson
- window.prevQuestion = function () {
-  if (current > 0) {
-    current--;
-    renderQuestion();
+ window.prevLesson = function(){
+  if(window.currentIndex > 0){
+    window.currentIndex--;
+    renderLesson();
   }
 };
 
