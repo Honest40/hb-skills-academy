@@ -2027,7 +2027,6 @@ window.nextLesson = function(){
 
   if(window.currentIndex < window.lessons.length - 1){
     window.currentIndex++;
-    window.lessons = window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
     renderLesson();
     return;
   }
@@ -2055,8 +2054,10 @@ window.nextLesson = function(){
   }
 
 };
+// 📌 SORT LESSONS ONCE (IMPORTANT)
+window.lessons = window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
 
- renderLesson();
+renderLesson();
 }
 
 window.jumpToLesson = function(index){
