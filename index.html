@@ -96,7 +96,6 @@ video {
     width:100%;
   }
 }
-}
 
 /* ===== TESTIMONIAL MODERN UI ===== */
 
@@ -509,7 +508,7 @@ header div:first-child{
 .lesson-wrapper{
   display:flex;
   flex-direction:column;
-  gap:15px;
+  gap:10px;
 }
 
 /* MEDIA */
@@ -598,6 +597,40 @@ header div:first-child{
     max-height:150px;
   }
 
+}
+/* ✅ FIX LESSON TEXT SPACING */
+.lesson-body p{
+  margin:8px 0;
+  line-height:1.5;
+}
+
+.lesson-body h2,
+.lesson-body h3{
+  margin:12px 0 6px;
+}
+
+.lesson-body ul{
+  margin:8px 0;
+  padding-left:18px;
+}
+
+.lesson-body li{
+  margin-bottom:6px;
+}
+
+/* remove excessive spacing from all elements */
+.lesson-body *{
+  margin-top:0;
+  margin-bottom:0;
+}
+/* 🎯 CLEAN LESSON CARD */
+.lesson-body{
+  background:#ffffff;
+  color:#0f172a;
+  padding:14px;
+  border-radius:12px;
+  line-height:1.5;
+  font-size:15px;
 }
 </style>
 </head>
@@ -1809,7 +1842,9 @@ const snap = await db.collection("courses")
 
 console.log("Lessons loaded:", snap.size);
 
-window.lessons = [];
+window.lessons = []
+// ✅ force correct lesson order
+window.lessons.sort((a, b) => a.id - b.id);
 
 snap.forEach(doc => {
   window.lessons.push(doc.data());
@@ -1935,10 +1970,12 @@ content.innerHTML = `
             cursor:pointer;
             background:${i===window.currentIndex ? '#2563eb' : '#334155'};
             color:white;
+            document.querySelector(".lesson-wrapper").scrollTop = 0;
           ">
           ${i===window.currentIndex ? "▶ " : ""}${l.title}
         </div>
       `).join("")}
+      
     </div>
   </div>
 
@@ -1956,9 +1993,14 @@ content.innerHTML = `
 window.nextLesson = function(){
 
   if(window.currentIndex < window.lessons.length - 1){
-    window.currentIndex++;
-    renderLesson();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+   window.currentIndex++;
+renderLesson();
+
+// ✅ scroll to top
+window.scrollTo({
+  top: 0,
+  behavior: "smooth"
+});
     return;
   }
 
