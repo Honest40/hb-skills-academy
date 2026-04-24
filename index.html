@@ -1870,8 +1870,8 @@ const snap = await db.collection("courses")
 
 console.log("Lessons loaded:", snap.size);
 
-window.lessons = []
-window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
+window.lessons = [
+    window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0))];
 snap.forEach(doc => {
   window.lessons.push(doc.data());
 });
@@ -1892,8 +1892,8 @@ window.currentIndex = Number(localStorage.getItem("lastLesson_" + courseId) || 0
 function renderLesson(){
 
   const lesson = window.lessons[window.currentIndex];
-  // ✅ FORCE LESSON ORDER
-window.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
+  // ✅ Save current lesson
+localStorage.setItem("lastLesson_" + courseId, window.currentIndex);
   const progressPercent = ((window.currentIndex + 1) / window.lessons.length) * 100;
 
   let mediaHTML = "";
@@ -2014,6 +2014,11 @@ ${lesson.description
 
   if(video){
     video.onended = () => nextLesson();
+  
+      window.scrollTo({
+  top: 0,
+  behavior: "smooth"
+});
   }
 }
   // ⏭ Next lesson
