@@ -586,41 +586,52 @@ header div:first-child{
 }
 
 /* text content */
-.lesson-body{
-  background:#1e293b;
-  color:#e2e8f0;
-  padding: 26px;
+/* 📚 CLEAN & SPACIOUS LESSON UI */
+.lesson-body {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 30px;
   border-radius: 16px;
-
-  font-size: 16px;
-  line-height: 1.9;
-  letter-spacing: 0.2px;
+  font-size: 17px;
+  line-height: 1.8; /* Increases space between lines of text */
+  letter-spacing: 0.3px;
+  max-width: 800px;
+  margin: 20px auto;
+  
+  /* 🔥 THIS IS THE MAGIC LINE: It respects your original line breaks */
+  white-space: pre-wrap; 
+  word-wrap: break-word;
 }
 
-/* spacing */
-.lesson-body p{
-  margin: 16px 0;
+/* Add breathing room between different elements */
+.lesson-body h1, .lesson-body h2, .lesson-body h3 {
+  margin-top: 40px;
+  margin-bottom: 20px;
+  color: #60a5fa; /* Light blue for headings to make them pop */
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 10px;
 }
 
-.lesson-body h1,
-.lesson-body h2,
-.lesson-body h3{
-  margin: 20px 0 12px;
+.lesson-body p {
+  margin-bottom: 20px; /* Big gap between paragraphs */
 }
 
-.lesson-body ul,
-.lesson-body ol{
-  margin: 16px 0;
+.lesson-body ul, .lesson-body ol {
+  margin: 20px 0;
   padding-left: 25px;
 }
 
-.lesson-body li{
-  margin-bottom: 10px;
+.lesson-body li {
+  margin-bottom: 12px;
 }
 
-.lesson-body{
-  max-width: 750px;
-  margin: auto;
+/* Custom Scrollbar for long lessons */
+.lesson-body::-webkit-scrollbar {
+  width: 8px;
+}
+.lesson-body::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
 }
 </style>
 </head>
@@ -1925,29 +1936,25 @@ function renderLesson(){
   }
 }
   // ⏭ Next lesson
-window.nextLesson = function () {
+window.nextLesson = function(){
 
-  if (window.currentIndex < window.lessons.length - 1) {
+  if(window.currentIndex < window.lessons.length - 1){
     window.currentIndex++;
     renderLesson();
 
-    // ✅ CRITICAL FIX: wait for DOM paint then scroll
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth"
-        });
-      }, 50);
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
     });
 
     return;
   }
 
   notify("🎉 Congratulations! You completed the course!", "success");
+
   confettiBurst();
   playSound("complete");
-};
+}
   renderLesson();
 }
 
