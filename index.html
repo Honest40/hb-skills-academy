@@ -1954,9 +1954,9 @@ content.innerHTML = `
     line-height:1.7;
     font-size:16px;
   ">
-   ${lesson.description
-  .replace(/\n/g, "<br><br>")
-  .replace(/•/g, "👉")}
+${lesson.description
+  .replace(/\n/g, "<br>")
+  .replace(/•/g, "👉 ")}
   </div>
 
   <!-- CONTROLS -->
@@ -2000,7 +2000,6 @@ content.innerHTML = `
             cursor:pointer;
             background:${i===window.currentIndex ? '#2563eb' : '#334155'};
             color:white;
-            document.querySelector(".lesson-wrapper").scrollTop = 0;
           ">
           ${i===window.currentIndex ? "▶ " : ""}${l.title}
         </div>
@@ -2023,46 +2022,36 @@ content.innerHTML = `
 window.nextLesson = function(){
 
   if(window.currentIndex < window.lessons.length - 1){
-   window.currentIndex++;
-renderLesson();
-
-// ✅ scroll to top
-window.scrollTo({
-  top: 0,
-  behavior: "smooth"
-});
+    window.currentIndex++;
+    renderLesson();
     return;
   }
 
-  // only when finished
+  // finished
   notify("🎓 Course Completed!", "success");
 
- const user = auth.currentUser;
+  const user = auth.currentUser;
 
-generateCertificate(
-  user?.displayName || user?.email || "Student",
-  courseCheck?.title || "Course"
-);
+  generateCertificate(
+    user?.displayName || user?.email || "Student",
+    courseCheck?.title || "Course"
+  );
 
   setTimeout(() => {
     loadQuiz(courseId);
   }, 1000);
 };
   // ⏮ Previous lesson
- window.prevQuestion = function () {
-  if (current > 0) {
-    current--;
-    renderQuestion();
+  window.prevLesson = function(){
+
+  if(window.currentIndex > 0){
+    window.currentIndex--;
+    renderLesson();
   }
+
 };
 
  renderLesson();
-
-// 👇 PASTE DIRECTLY UNDER IT
-window.scrollTo({
-  top: 0,
-  behavior: "smooth"
-});
 }
 
 window.jumpToLesson = function(index){
