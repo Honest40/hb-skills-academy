@@ -806,6 +806,46 @@ header div:first-child{
 .lesson-body li{
   margin-bottom: 8px;
 }
+
+/* 📚 FINAL LESSON READING FIX (STRICT LAYOUT CONTROL) */
+
+.lesson-wrapper{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 25px 10px;
+}
+
+.lesson-body{
+  width: 100%;
+  max-width: 780px;
+  background: #1e293b;
+  padding: 28px;
+  border-radius: 14px;
+
+  font-size: 16px;
+  line-height: 1.95;
+
+  /* KEY FIX: prevents squeezed look */
+  margin: 0 auto;
+}
+
+/* spacing consistency */
+.lesson-body p{
+  margin: 15px 0;
+}
+
+.lesson-body h1,
+.lesson-body h2,
+.lesson-body h3{
+  margin: 20px 0 12px;
+}
+
+.lesson-body ul,
+.lesson-body ol{
+  margin: 15px 0;
+  padding-left: 25px;
+}
 </style>
 </head>
 
@@ -2109,18 +2149,20 @@ function renderLesson(){
   }
 }
   // ⏭ Next lesson
-window.nextLesson = function(){
+window.nextLesson = function () {
 
-  if(window.currentIndex < window.lessons.length - 1){
+  if (window.currentIndex < window.lessons.length - 1) {
     window.currentIndex++;
     renderLesson();
 
-    // ✅ WAIT FOR DOM UPDATE THEN RESET SCROLL
+    // ✅ CRITICAL FIX: wait for DOM paint then scroll
     requestAnimationFrame(() => {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }, 50);
     });
 
     return;
