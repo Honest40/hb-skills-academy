@@ -2020,13 +2020,13 @@ window.nextLesson = function(){
     window.currentIndex++;
     renderLesson();
 
-    // ✅ ALWAYS START FROM TOP
+    // ✅ FIX: ALWAYS START FROM TOP
     setTimeout(() => {
       window.scrollTo({
         top: 0,
         behavior: "smooth"
       });
-    }, 50);
+    }, 80);
 
     return;
   }
