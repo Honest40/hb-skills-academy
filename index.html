@@ -861,6 +861,7 @@ color:white;">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+
 <script>
     let userAnswers = [];
 let answered = false;
@@ -2049,17 +2050,17 @@ function playSound(name){
 }
 
 async function rateCourse(courseId, rating){
-  const user = auth.currentUser;
-  if(!user) return alert("Login first");
 
-  // find user's enrollment
+  const user = auth.currentUser;
+  if(!user) return notify("Login first", "error");
+
   const snap = await db.collection("enrollments")
     .where("userId","==",user.uid)
     .where("courseId","==",courseId)
     .get();
 
   if(snap.empty){
-    return alert("Enroll first before rating");
+    return notify("Enroll first before rating", "error");
   }
 
   const docId = snap.docs[0].id;
@@ -2068,50 +2069,15 @@ async function rateCourse(courseId, rating){
     rating: rating
   });
 
-  alert("⭐ Rating submitted!");
-  loadCourses(); // refresh UI
-}
+  notify("⭐ Rating submitted!", "success");
 
-function showLoader(){
-  const loader = document.createElement("div");
-  loader.id = "loader";
-  loader.innerHTML = "⏳ Loading...";
-  loader.style = `
-    position:fixed;
-    top:50%;left:50%;
-    transform:translate(-50%,-50%);
-    color:#fff;
-    font-size:18px;
-  `;
-  document.body.appendChild(loader);
-}
+  // update UI instantly
+  const stars = document.querySelectorAll(`.stars[data-id="${courseId}"] .star`);
 
-function hideLoader(){
-  const l = document.getElementById("loader");
-  if(l) l.remove();
-}
+  stars.forEach(s => {
+    s.classList.toggle("active", Number(s.dataset.value) <= rating);
+  });
 
-document.querySelectorAll(".filterBtn").forEach(btn=>{
-  btn.onclick = () => {
-    document.querySelectorAll(".filterBtn").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-
-    filterType = btn.dataset.filter;
-    loadCourses();
-  };
-});
-
-function toggleTheme(){
-  document.body.classList.toggle("light");
-}
-
-function toggleMenu(){
-  if(nav.style.display === "flex"){
-    nav.style.display = "none";
-  } else {
-    nav.style.display = "flex";
-    nav.style.flexDirection = "column";
-  }
 }
 async function isApproved(courseId){
   const user = auth.currentUser;
@@ -2140,7 +2106,7 @@ function notify(msg, type="success"){
     error:"#ef4444",
     info:"#3b82f6"
   };
-
+ 
   box.innerText = msg;
   box.style.cssText = `
     position:fixed;
@@ -2684,6 +2650,40 @@ document.addEventListener("click", () => {
   correctSound.play().then(()=>correctSound.pause()).catch(()=>{});
   wrongSound.play().then(()=>wrongSound.pause()).catch(()=>{});
 }, { once: true });
+document.addEventListener("click", function(e){
+
+  if(e.target.classList.contains("star")){
+    
+    const star = e.target;
+    const rating = Number(star.dataset.value);
+    const courseId = star.closest(".stars").dataset.id;
+
+    rateCourse(courseId, rating);
+  }
+
+});
+document.addEventListener("mouseover", function(e){
+
+  if(e.target.classList.contains("star")){
+    const star = e.target;
+    const val = Number(star.dataset.value);
+    const stars = star.parentElement.querySelectorAll(".star");
+
+    stars.forEach(s => {
+      s.classList.toggle("active", Number(s.dataset.value) <= val);
+    });
+  }
+
+});
+
+document.addEventListener("mouseout", function(e){
+
+  if(e.target.classList.contains("star")){
+    const stars = e.target.parentElement.querySelectorAll(".star");
+    stars.forEach(s => s.classList.remove("active"));
+  }
+
+});
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
