@@ -1051,7 +1051,12 @@ auth.onAuthStateChanged(u => {
   speak("Welcome to HB Skills Academy. Start learning and grow your future.");
 }
 });
-      notify("Welcome back 👋", "info");
+    notify("Welcome back 👋", "info");
+
+// delay second message
+setTimeout(() => {
+  showLearningTip();
+}, 2500); // 2.5 seconds later
     authBox.style.display = "none";
     nav.style.display = "flex";
     
@@ -2101,16 +2106,21 @@ async function isApproved(courseId){
 function notify(msg, type="success"){
   const box = document.createElement("div");
 
+  box.className = "notify-box";
+
   const colors = {
     success:"#22c55e",
     error:"#ef4444",
     info:"#3b82f6"
   };
- 
+
   box.innerText = msg;
+
+  const existing = document.querySelectorAll(".notify-box").length;
+
   box.style.cssText = `
     position:fixed;
-    bottom:20px;
+    bottom:${20 + existing * 60}px;
     right:20px;
     background:${colors[type]};
     color:#fff;
@@ -2122,7 +2132,10 @@ function notify(msg, type="success"){
   `;
 
   document.body.appendChild(box);
-  setTimeout(()=>box.remove(),3000);
+
+  setTimeout(()=>{
+    box.remove();
+  },3000);
 }
 
 
@@ -2634,7 +2647,7 @@ function showLearningTip(){
   ];
 
   const tip = tips[Math.floor(Math.random()*tips.length)];
-  notify(tip, "info");
+topNotify(tip);
 }
 
 document.querySelectorAll("img").forEach(img=>{
@@ -2684,6 +2697,28 @@ document.addEventListener("mouseout", function(e){
   }
 
 });
+function topNotify(msg){
+  const box = document.createElement("div");
+
+  box.innerText = msg;
+
+  box.style.cssText = `
+    position:fixed;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#0ea5e9;
+    color:#fff;
+    padding:12px 18px;
+    border-radius:10px;
+    z-index:99999;
+    box-shadow:0 10px 25px rgba(0,0,0,0.3);
+  `;
+
+  document.body.appendChild(box);
+
+  setTimeout(()=>box.remove(),3000);
+}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
