@@ -270,9 +270,12 @@ section{
   opacity:1;
   transform:translateY(0);
 }
-.card:hover{
-  transform:translateY(-6px) scale(1.02);
-  box-shadow:0 15px 35px rgba(0,0,0,0.3);
+.card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  transform: scale(1.03); /* reduce from 1.05 */
 }
 
 /* INPUTS */
@@ -2924,7 +2927,7 @@ function floatingIcons(){
     document.body.appendChild(el);
 
     setTimeout(()=>el.remove(),6000);
-  },1000);
+},3000); // slower = smoother
 }
 function showLearningTip(){
   const tips = [
@@ -2948,10 +2951,6 @@ document.addEventListener("keydown", function(e){
     alert("Screenshots disabled");
   }
 });
-document.addEventListener("click", () => {
-  correctSound.play().then(()=>correctSound.pause()).catch(()=>{});
-  wrongSound.play().then(()=>wrongSound.pause()).catch(()=>{});
-}, { once: true });
 document.addEventListener("click", function(e){
 
   if(e.target.classList.contains("star")){
