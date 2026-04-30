@@ -272,12 +272,11 @@ section{
 }
 .card {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform;
 }
-
 .card:hover {
-  transform: scale(1.03); /* reduce from 1.05 */
+  transform: translateY(-4px) scale(1.02);
 }
-
 /* INPUTS */
 input,textarea,select{
   width:100%;
@@ -391,10 +390,12 @@ video, iframe{
   from{opacity:0;transform:translateY(20px);}
   to{opacity:1;transform:translateY(0);}
 }
-.course-img{
-  height:180px;
-  object-fit:cover;
-  border-radius:10px;
+.course-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+  border-radius: 10px;
 }
 
 @keyframes pulse{
@@ -670,12 +671,12 @@ header div:first-child{
   position:fixed;
   bottom:50px;
   right:20px; /* better than center for apps */
-  background:#22;
+  background: #22c55e;
   color:#fff;
   border:none;
   padding:12px 18px;
   border-radius:30px;
-  font-size:8px;
+  font-size:14px;
   cursor:pointer;
   box-shadow:0 8px 20px rgba(0,0,0,0.3);
   z-index:99999;
@@ -694,12 +695,12 @@ header div:first-child{
   margin-top:px;
   bottom:50px; /* above email button */
   left:20px;
-  background:#25;
+  background: #22c55e;
   color:#fff;
   border:none;
   padding:12px 18px;
   border-radius:30px;
-  font-size:8px;
+  font-size:14px;
   cursor:pointer;
   box-shadow:0 8px 20px rgba(0,0,0,0.3);
   z-index:99999;
@@ -790,11 +791,50 @@ body{
 .lesson-text strong {
   color: #facc15;
 }
+.star {
+  cursor: pointer;
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.star:hover {
+  transform: scale(1.1);
+}
+
+.star.active {
+  color: gold;
+}
+#clockBox{
+  position:fixed;
+  top:10px;
+  right:10px;
+  background:#0f172a;
+  color:white;
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:14px;
+  z-index:99999;
+  box-shadow:0 5px 15px rgba(0,0,0,0.3);
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <div id="sideMenu" class="side-menu">
+    <button onclick="toggleMenu()" style="
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:#ef4444;
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:14px;
+  cursor:pointer;
+">
+  ✖ Close
+</button>
   
   <h3>📱 Menu</h3>
 
@@ -823,6 +863,7 @@ body{
 
 </div>
 <body>
+    <div id="clockBox"></div>
     <div id="spinner" style="
 position:fixed;
 top:50%;
@@ -1085,8 +1126,8 @@ function requireAuth(){
 /* Navigation */
 function show(id){
 
-  // hide only tab sections (NOT everything else in future)
-  document.querySelectorAll(".tab").forEach(s=>{
+  // hide all sections safely
+  document.querySelectorAll("section").forEach(s=>{
     s.style.display = "none";
   });
 
@@ -1096,17 +1137,19 @@ function show(id){
   }
 
   // nav active state
-  document.querySelectorAll("nav button").forEach(b=>{
+  document.querySelectorAll("nav button[data-tab]").forEach(b=>{
     b.classList.remove("active");
   });
 
   const btn = document.querySelector(`nav button[data-tab="${id}"]`);
   if(btn) btn.classList.add("active");
 
-  // auto-load important tabs
+  // auto load
   if(id === "business") loadBusiness();
   if(id === "courses") loadCourses();
-  if(id === "enrollments") loadMyEnrollments();
+  if(id === "myEnrollments") loadMyEnrollments();
+  if(id === "testimonials") loadTestimonials();
+  if(id === "profile") loadProfile();
 }
 document.querySelectorAll("nav button[data-tab]").forEach(b=>{
   b.onclick = () => {
@@ -1240,6 +1283,7 @@ setTimeout(() => {
     
 
     show("courses");
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     loadCourses();
     loadMyEnrollments();
@@ -1285,50 +1329,52 @@ async function uploadToCloudinary(file){
 let cachedCourses = [];
 
 async function loadCourses(){
-    showSpinner();
-    const user = auth.currentUser;
-let myCourses = [];
+  showSpinner();
 
-if(user){
-  const myEnrollSnap = await db.collection("enrollments")
-    .where("userId","==",user.uid)
-    .get();
+  const user = auth.currentUser;
+  let myCourses = [];
 
-  myCourses = myEnrollSnap.docs.map(d => d.data().courseId);
-   hideSpinner();
-}
+  if(user){
+    const myEnrollSnap = await db.collection("enrollments")
+      .where("userId","==",user.uid)
+      .get();
 
-  // 🔥 SHOW SKELETON LOADING FIRST
- courseList.innerHTML = `
-<div class="grid">
-  ${[1,2,3,4].map(()=>`
-    <div class="card" style="height:250px;animation:pulse 1.2s infinite;"></div>
-  `).join("")}
-</div>
-`;
+    myCourses = myEnrollSnap.docs.map(d => d.data().courseId);
+  }
+
+  // 🔥 SKELETON LOADING
+  courseList.innerHTML = `
+    <div class="grid">
+      ${[1,2,3,4].map(()=>`
+        <div class="card" style="height:250px;animation:pulse 1.2s infinite;"></div>
+      `).join("")}
+    </div>
+  `;
+
   const term = searchInput.value.toLowerCase();
 
-  // 🔥 LOAD DATA IN PARALLEL (FAST)
- const coursesSnap = await db.collection("courses").get();
+  // ❌ FIXED: missing await + correct query
+  const coursesSnap = await db.collection("courses").get();
 
-const enrollmentsSnap = auth.currentUser
-  ? await db.collection("enrollments")
-      .where("userId","==",auth.currentUser.uid)
-      .get()
-  : { forEach:()=>{} };
+  const enrollmentsSnap = auth.currentUser
+    ? await db.collection("enrollments")
+        .where("userId","==",auth.currentUser.uid)
+        .get()
+    : { forEach:()=>{} };
 
-  // 🔥 GROUP RATINGS (FAST)
+  // 🔥 GROUP RATINGS
   const ratingsMap = {};
 
   enrollmentsSnap.forEach(e=>{
     const d = e.data();
+
     if(!ratingsMap[d.courseId]){
       ratingsMap[d.courseId] = {total:0,count:0};
     }
+
     if(d.rating){
       ratingsMap[d.courseId].total += d.rating;
       ratingsMap[d.courseId].count++;
-     
     }
   });
 
@@ -1341,72 +1387,62 @@ const enrollmentsSnap = auth.currentUser
     if(term && !d.title.toLowerCase().includes(term)) return;
     if(filterType==="free" && d.price>0) return;
     if(filterType==="premium" && d.price<=0) return;
-    if(grid.children.length === 0){
-}
 
     const ratingData = ratingsMap[doc.id] || {total:0,count:0};
-    const avg = ratingData.count ? (ratingData.total/ratingData.count).toFixed(1) : "No rating";
+
+    // ✅ FIX: prevent double "No rating"
+    let avg = "";
+    if(ratingData.count === 0){
+      avg = "No rating";
+    }else{
+      avg = (ratingData.total / ratingData.count).toFixed(1);
+    }
 
     const card = document.createElement("div");
-  card.className="card show netflix-card";
-card.style.minWidth = "260px";
-   card.innerHTML = `
-<div style="position:relative;">
-  ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img" loading="lazy" style="height:200px;">` : ``}
+    card.className="card show netflix-card";
+    card.style.minWidth = "260px";
 
-  ${
-    Number(d.price) === 0
-    ? `<span style="
-        position:absolute;
-        top:10px;
-        left:10px;
-        background:#22c55e;
-        color:#fff;
-        padding:5px 10px;
-        font-size:12px;
-        border-radius:8px;
-        font-weight:bold;
-      ">FREE</span>`
-    : `<span style="
-        position:absolute;
-        top:10px;
-        left:10px;
-        background:#f59e0b;
-        color:#000;
-        padding:5px 10px;
-        font-size:12px;
-        border-radius:8px;
-        font-weight:bold;
-      ">PREMIUM</span>`
-  }
-</div>
+    card.innerHTML = `
+      <div style="position:relative;">
+        ${d.coverUrl ? `<img src="${d.coverUrl}" class="course-img" loading="lazy" style="height:200px;">` : ``}
 
-<h4 style="margin-top:10px;">${d.title}</h4>
-<p style="opacity:.7;font-size:14px;">
-  ${d.description.substring(0,80)}...
-</p>
-     <div>⭐ ${avg}</div>
+        ${
+          Number(d.price) === 0
+          ? `<span style="position:absolute;top:10px;left:10px;background:#22c55e;color:#fff;padding:5px 10px;font-size:12px;border-radius:8px;font-weight:bold;">FREE</span>`
+          : `<span style="position:absolute;top:10px;left:10px;background:#f59e0b;color:#000;padding:5px 10px;font-size:12px;border-radius:8px;font-weight:bold;">PREMIUM</span>`
+        }
+      </div>
 
-<div class="rating-box">
-  <div class="stars" data-id="${doc.id}">
-    ${[1,2,3,4,5].map(n => `
-      <span class="star" data-value="${n}">★</span>
-    `).join("")}
-  </div>
-  <small style="opacity:.7;">⭐ ${avg}</small>
-</div>
+      <h4 style="margin-top:10px;">${d.title}</h4>
+      <p style="opacity:.7;font-size:14px;">
+        ${d.description.substring(0,80)}...
+      </p>
 
-${
-  myCourses.includes(doc.id)
-  ? `<button disabled style="background:#16a34a;cursor:not-allowed;">✔ Already Enrolled</button>`
-  : Number(d.price) === 0
-    ? `<button onclick="enroll('${doc.id}', 0)" style="background:#22c55e;">Start Free</button>`
-    : `<button onclick="enroll('${doc.id}', ${Number(d.price || 0)})">Enroll Now</button>`
-}     <button onclick="openCourse('${doc.id}')">Start</button>
+      <div>⭐ ${avg}</div>
+
+      <div class="rating-box">
+        <div class="stars" data-id="${doc.id}">
+          ${[1,2,3,4,5].map(n => `
+            <span class="star" data-value="${n}">★</span>
+          `).join("")}
+        </div>
+      </div>
+
+      ${
+        myCourses.includes(doc.id)
+        ? `<button disabled style="background:#16a34a;cursor:not-allowed;">✔ Already Enrolled</button>`
+        : Number(d.price) === 0
+          ? `<button onclick="enroll('${doc.id}', 0)" style="background:#22c55e;">Start Free</button>`
+          : `<button onclick="enroll('${doc.id}', ${Number(d.price || 0)})">Enroll Now</button>`
+      }
+
+      <button onclick="openCourse('${doc.id}')">Start</button>
     `;
 
     grid.appendChild(card);
   });
+
+  hideSpinner();
 }
 /* Preview Lesson */
 async function previewLesson(courseId){
@@ -2104,6 +2140,7 @@ btn.style.color = "white";
   render();
 }
 async function openCourse(courseId){
+    window.courseId = courseId;
 
   const user = auth.currentUser;
   if(!user){
@@ -2954,37 +2991,22 @@ document.addEventListener("keydown", function(e){
 document.addEventListener("click", function(e){
 
   if(e.target.classList.contains("star")){
-    
+
     const star = e.target;
     const rating = Number(star.dataset.value);
     const courseId = star.closest(".stars").dataset.id;
 
     rateCourse(courseId, rating);
-  }
 
-});
-document.addEventListener("mouseover", function(e){
-
-  if(e.target.classList.contains("star")){
-    const star = e.target;
-    const val = Number(star.dataset.value);
-    const stars = star.parentElement.querySelectorAll(".star");
+    const stars = star.closest(".stars").querySelectorAll(".star");
 
     stars.forEach(s => {
-      s.classList.toggle("active", Number(s.dataset.value) <= val);
+      s.classList.toggle("active", Number(s.dataset.value) <= rating);
     });
   }
 
 });
 
-document.addEventListener("mouseout", function(e){
-
-  if(e.target.classList.contains("star")){
-    const stars = e.target.parentElement.querySelectorAll(".star");
-    stars.forEach(s => s.classList.remove("active"));
-  }
-
-});
 function topNotify(msg){
   const box = document.createElement("div");
 
@@ -3179,6 +3201,46 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
+window.prevLesson = function(){
+
+  if(!window.lessons || window.lessons.length === 0) return;
+
+  if(window.currentIndex > 0){
+    window.currentIndex--;
+
+    localStorage.setItem("lastLesson_" + window.courseId, window.currentIndex);
+
+    renderLesson();
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+function updateClock(){
+  const now = new Date();
+
+  // 🔥 Short months (Jan, Feb, Jun etc.)
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  const day = now.getDate();
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+
+  // 🔥 24-hour time format
+  let hours = now.getHours();
+  let minutes = now.getMinutes();
+
+  if(minutes < 10) minutes = "0" + minutes;
+  if(hours < 10) hours = "0" + hours;
+
+  const time = hours + ":" + minutes;
+
+  document.getElementById("clockBox").innerText =
+    "📅 " + day + " " + month + " " + year + " ⏰ " + time;
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
