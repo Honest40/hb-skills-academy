@@ -9,13 +9,14 @@
 <title>HB Skills Academy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <style>
-:root{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --text:#e5e7eb;
-  --primary:#0ea5e9;
-  --success:#22c55e;
-  --danger:#ef4444;
+:root {
+    --primary: #0ea5e9;
+    --primary-glow: rgba(14, 165, 233, 0.3);
+    --bg: #020617;
+    --card: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
 }
 .floating{
   position:fixed;
@@ -202,27 +203,29 @@ header div:last-child{
 }
 
 /* NAV */
-nav{
-  display:none;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:10px;
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(10px);
+nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    position: sticky;
+    top: 10px;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 50px;
+    margin: 10px auto;
+    width: 90%;
+    border: 1px solid var(--glass-border);
 }
-nav button{
-  flex:1 1 auto;
-  min-width:120px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  background:rgba(255,255,255,0.08);
-  color:#fff;
-  cursor:pointer;
-  transition:0.3s;
+nav button {
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-dim);
 }
-nav button:hover{
-  background:var(--secondary);
+nav button.active {
+    background: var(--primary);
+    color: white;
 }
 nav button.active{
   background:var(--primary);
@@ -271,11 +274,21 @@ section{
   transform:translateY(0);
 }
 .card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  will-change: transform;
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 20px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    opacity: 1 !important; /* Overriding previous hidden state */
+    transform: none !important;
 }
 .card:hover {
-  transform: translateY(-4px) scale(1.02);
+    transform: translateY(-8px) scale(1.02) !important;
+    border-color: var(--primary);
+    box-shadow: 0 20px 40px -15px var(--primary-glow);
 }
 /* INPUTS */
 input,textarea,select{
@@ -293,20 +306,20 @@ input:focus,textarea:focus{
 }
 
 /* BUTTONS */
-button{
-  margin-top:10px;
-  padding:12px;
-  border:none;
-  border-radius:8px;
-  font-weight:600;
-  cursor:pointer;
-  background:linear-gradient(135deg,var(--primary),var(--secondary));
-  color:#fff;
-  transition:0.3s;
+button {
+    background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 4px 15px var(--primary-glow);
 }
-button:hover{
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(0,0,0,0.2);
+button:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 8px 25px var(--primary-glow);
 }
 
 /* FILTER BUTTON */
@@ -391,13 +404,10 @@ video, iframe{
   to{opacity:1;transform:translateY(0);}
 }
 .course-img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  display: block;
-  border-radius: 10px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--glass-border);
 }
-
 @keyframes pulse{
   0%{opacity:0.5;}
   50%{opacity:1;}
@@ -608,20 +618,10 @@ header div:first-child{
 
 /* 📚 BALANCED CLEAN LESSON UI */
 .lesson-body {
-  background: #1e293b;
-  color: #f1f5f9;
-  padding: 24px;
-  border-radius: 14px;
-
-  font-size: 16px;       /* 🔥 clearer */
-  line-height: 1.8;      /* 🔥 better spacing */
-  letter-spacing: 0.3px;
-
-  max-width: 750px;
-  margin: 20px auto;
-
-  white-space: pre-wrap;
-  word-wrap: break-word;
+    background: radial-gradient(circle at top right, #1e1b4b, #020617);
+    color: var(--text-main);
+    font-family: 'Poppins', sans-serif;
+    transition: background 0.5s ease;
 }
 
 /* Headings */
@@ -816,6 +816,37 @@ body{
   z-index:99999;
   box-shadow:0 5px 15px rgba(0,0,0,0.3);
 }
+
+/* Lesson Header Bar */
+.lesson-nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(15px);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 20px;
+}
+
+.exit-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.exit-btn:hover {
+    background: #ef4444;
+    color: white;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -914,33 +945,24 @@ color:white;">
     <button onclick="toggleMenu()">☰</button>
 
     
-    <section id="hero" style="display:block;text-align:center;padding:60px 20px;color:#fff;">
-<h1 class="hero-title">
-  🚀 Learn Digital Skills That Pay You Forever
-</h1>
-
-<p style="opacity:0.85;margin-top:10px;">
-  Build real skills. Start earning. Change your future today.
-</p>
-
- 
+  <section id="hero" style="background:none; padding: 40px 5%;">
+    <h1 style="font-size:clamp(28px, 5vw, 48px); font-weight:800; line-height:1.1; background: linear-gradient(to bottom right, #fff, #67e8f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Learn Skills that <br>Pay You Forever.
+    </h1>
+    <div style="margin-top:25px; display:flex; gap:10px;">
+        <button onclick="goToPage('courses')">Explore Courses</button>
+        <button style="background:rgba(255,255,255,0.05); border:1px solid var(--glass-border);">Join Community</button>
+    </div>
 </section>
-<header>
-  <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-    
-<img src="https://www.image2url.com/r2/default/images/1777293190422-9964bb9b-e296-4f13-847b-f65555cd5086.png"
-style="width:100px; height:auto;"
-alt="image">
-    <span style="font-size:22px;font-weight:700;">
-      HB Skills Academy
-    </span>
-    <div id="welcomeUser" style="font-size:12px;opacity:0.7;"></div>
-    
-  </div>
-
-  <div style="font-size:13px;opacity:0.7;">
-    Learn • Grow • Earn
-  </div>
+<header style="background:transparent; border:none; text-align:left; padding: 20px 5%; display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:15px;">
+        <img src="https://www.image2url.com/r2/default/images/1777293190422-9964bb9b-e296-4f13-847b-f65555cd5086.png" style="width:50px; height:50px; border-radius:10px; box-shadow: 0 0 20px var(--primary-glow);">
+        <div>
+            <h2 style="font-size:20px; letter-spacing:-0.5px;">HB Academy</h2>
+            <p style="font-size:12px; color:var(--text-dim);">Level up your skills</p>
+        </div>
+    </div>
+    <button onclick="toggleMenu()" style="background:rgba(255,255,255,0.1); width:45px; height:45px; padding:0; border-radius:50%;">☰</button>
 </header>
 <!-- Auth -->
 <section id="authBox">
@@ -3042,28 +3064,34 @@ function openWhatsApp(){
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
 }
-function toggleMenu(){
-  const menu = document.getElementById("sideMenu");
-
-  if(menu.style.left === "0px"){
-    menu.style.left = "-260px";
-  }else{
-    menu.style.left = "0px";
-  }
+function toggleMenu() {
+    const menu = document.getElementById("sideMenu");
+    const isOpen = menu.style.left === "0px";
+    menu.style.left = isOpen ? "-260px" : "0px";
+    // Add a dark overlay when menu is open
+    if(!isOpen) {
+        let overlay = document.createElement('div');
+        overlay.id = "menu-overlay";
+        overlay.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99998;";
+        overlay.onclick = toggleMenu;
+        document.body.appendChild(overlay);
+    } else {
+        document.getElementById("menu-overlay")?.remove();
+    }
 }
-function goToPage(page){
-
-  document.querySelectorAll("section").forEach(s=>{
-    s.style.display = "none";
-  });
-
-  const target = document.getElementById(page);
-  if(target){
-    target.style.display = "block";
-  }
-
-  // close menu
-  document.getElementById("sideMenu").style.left = "-260px";
+function goToPage(pageId) {
+    document.querySelectorAll('section').forEach(s => {
+        s.style.opacity = '0';
+        setTimeout(() => s.style.display = 'none', 300);
+    });
+    
+    setTimeout(() => {
+        const target = document.getElementById(pageId);
+        target.style.display = 'block';
+        target.style.opacity = '1';
+        // Auto-close menu on mobile
+        if(window.innerWidth < 600) toggleMenu();
+    }, 300);
 }
 async function cancelEnrollment(enrollmentId, courseId){
 
