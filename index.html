@@ -768,7 +768,28 @@ body{
   color:var(--text);
   transition:0.3s ease;
 }
+.lesson-text h1,
+.lesson-text h2,
+.lesson-text h3 {
+  margin-top: 15px;
+  color: #38bdf8;
+}
+
+.lesson-text p {
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+.lesson-text ul {
+  padding-left: 20px;
+}
+
+.lesson-text strong {
+  color: #facc15;
+}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <div id="sideMenu" class="side-menu">
   
@@ -2237,7 +2258,9 @@ function renderLesson(){
     <div class="lesson-body">
 
       <h2>${lesson.title}</h2>
-      <p>${lesson.description || "No description available"}</p>
+     <div class="lesson-text">
+  ${DOMPurify.sanitize(marked.parse(lesson.description || "No description available"))}
+</div>
 
       <div class="progress-box">
         <div class="progress-bar" style="width:${progressPercent}%"></div>
