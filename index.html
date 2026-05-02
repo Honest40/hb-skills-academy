@@ -3308,34 +3308,73 @@ updateClock();
 const clock = document.getElementById("clockBox");
 
 let isDragging = false;
-let offsetX, offsetY;
+let offsetX = 0;
+let offsetY = 0;
 
-clock.addEventListener("mousedown", (e) => {
+const box = document.getElementById("YOUR_ELEMENT_ID"); // change this
+
+// 🖱️ Desktop
+box.addEventListener("mousedown", startDrag);
+
+// 📱 Mobile
+box.addEventListener("touchstart", startDrag, { passive: false });
+
+function startDrag(e){
   isDragging = true;
-  offsetX = e.clientX - clock.offsetLeft;
-  offsetY = e.clientY - clock.offsetTop;
-});
 
-document.addEventListener("mousemove", (e) => {
-  if (!isDragging) return;
-  clock.style.left = (e.clientX - offsetX) + "px";
-  clock.style.top = (e.clientY - offsetY) + "px";
-  clock.style.right = "auto";
-});
+  const event = e.touches ? e.touches[0] : e;
 
-document.addEventListener("mouseup", () => {
+  offsetX = event.clientX - box.offsetLeft;
+  offsetY = event.clientY - box.offsetTop;
+
+  document.addEventListener("mousemove", moveDrag);
+  document.addEventListener("touchmove", moveDrag, { passive: false });
+
+  document.addEventListener("mouseup", stopDrag);
+  document.addEventListener("touchend", stopDrag);
+}
+
+function moveDrag(e){
+  if(!isDragging) return;
+
+  const event = e.touches ? e.touches[0] : e;
+
+  box.style.position = "absolute";
+  box.style.left = (event.clientX - offsetX) + "px";
+  box.style.top = (event.clientY - offsetY) + "px";
+
+  e.preventDefault(); // important for mobile scrolling issues
+}
+
+function stopDrag(){
   isDragging = false;
-});
 
+  document.removeEventListener("mousemove", moveDrag);
+  document.removeEventListener("touchmove", moveDrag);
+}
 function goBack(){
-  const lastPage = pageHistory.pop();
-  if(!lastPage) return;
 
+  // hide all sections
   document.querySelectorAll("section").forEach(s => {
     s.style.display = "none";
   });
 
-  document.getElementById(lastPage).style.display = "block";
+  // go back to default page (change if needed)
+  const home = document.getElementById("courses");
+
+  if(home){
+    home.style.display = "block";
+  }
+
+  // optional: reset navigation active state
+  document.querySelectorAll("nav button").forEach(b=>{
+    b.classList.remove("active");
+  });
+
+  const homeBtn = document.querySelector('nav button[data-tab="courses"]');
+  if(homeBtn) homeBtn.classList.add("active");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
