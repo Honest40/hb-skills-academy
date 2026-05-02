@@ -202,33 +202,52 @@ header div:last-child{
   opacity:0.7;
 }
 
-/* NAV */
-nav {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    padding: 15px;
-    position: sticky;
-    top: 10px;
-    z-index: 1000;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(10px);
-    border-radius: 50px;
-    margin: 10px auto;
-    width: 90%;
-    border: 1px solid var(--glass-border);
+nav#nav{
+  display:flex;
+  gap:10px;
+  padding:12px;
+  justify-content:flex-start;
+  align-items:center;
+
+  background:rgba(17,26,46,0.7);
+  backdrop-filter:blur(12px);
+
+  border-bottom:1px solid var(--border);
+
+  overflow-x:auto;        /* KEY FIX */
+  white-space:nowrap;
+  -webkit-overflow-scrolling:touch;
+
+  position:sticky;
+  top:0;
+  z-index:1000;
 }
-nav button {
-    background: transparent;
-    box-shadow: none;
-    color: var(--text-dim);
+
+/* hide scrollbar */
+nav#nav::-webkit-scrollbar{
+  display:none;
 }
-nav button.active {
-    background: var(--primary);
-    color: white;
+
+nav#nav button{
+  flex:0 0 auto;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--muted);
+  font-size:14px;
+  transition:0.3s;
+  white-space:nowrap;
 }
-nav button.active{
+
+nav#nav button.active{
   background:var(--primary);
+  color:white;
+}
+
+nav#nav button:hover{
+  background:rgba(79,140,255,0.15);
+  color:white;
 }
 
 /* LAYOUT CONTAINER */
@@ -622,6 +641,7 @@ header div:first-child{
     color: var(--text-main);
     font-family: 'Poppins', sans-serif;
     transition: background 0.5s ease;
+    width:100;
 }
 
 /* Headings */
@@ -847,6 +867,25 @@ body{
     background: #ef4444;
     color: white;
 }
+
+.draggable-clock{
+  position:fixed;
+  top:10px;
+  right:10px;
+  background:#0f172a;
+  color:white;
+  padding:10px 14px;
+  border-radius:12px;
+  font-size:14px;
+  z-index:99999;
+  box-shadow:0 8px 20px rgba(0,0,0,0.3);
+  cursor:move;
+  user-select:none;
+  resize: both;
+  overflow:auto;
+  min-width:120px;
+  min-height:40px;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -894,7 +933,7 @@ body{
 
 </div>
 <body>
-    <div id="clockBox"></div>
+  <div id="clockBox" class="draggable-clock">📅 Loading...</div>
     <div id="spinner" style="
 position:fixed;
 top:50%;
@@ -2331,7 +2370,7 @@ function renderLesson(){
       <small>${Math.round(progressPercent)}% Completed</small>
 
       <div class="lesson-controls">
-        <button onclick="prevLesson()" ${window.currentIndex===0?'disabled':''}>⬅ Back</button>
+       <button onclick="goBack()">⬅ Back</button>
         <button onclick="markComplete('${courseId}', ${window.currentIndex})">✔ Complete</button>
         <button onclick="nextLesson()" ${window.currentIndex===window.lessons.length-1?'disabled':''}>Next ➡</button>
       </div>
@@ -3079,19 +3118,17 @@ function toggleMenu() {
         document.getElementById("menu-overlay")?.remove();
     }
 }
-function goToPage(pageId) {
-    document.querySelectorAll('section').forEach(s => {
-        s.style.opacity = '0';
-        setTimeout(() => s.style.display = 'none', 300);
-    });
-    
-    setTimeout(() => {
-        const target = document.getElementById(pageId);
-        target.style.display = 'block';
-        target.style.opacity = '1';
-        // Auto-close menu on mobile
-        if(window.innerWidth < 600) toggleMenu();
-    }, 300);
+let pageHistory = [];
+
+function goToPage(pageId){
+  const current = document.querySelector("section:not([style*='display: none'])");
+  if(current) pageHistory.push(current.id);
+
+  document.querySelectorAll("section").forEach(s => {
+    s.style.display = "none";
+  });
+
+  document.getElementById(pageId).style.display = "block";
 }
 async function cancelEnrollment(enrollmentId, courseId){
 
@@ -3268,7 +3305,38 @@ function updateClock(){
 
 setInterval(updateClock, 1000);
 updateClock();
+const clock = document.getElementById("clockBox");
 
+let isDragging = false;
+let offsetX, offsetY;
+
+clock.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  offsetX = e.clientX - clock.offsetLeft;
+  offsetY = e.clientY - clock.offsetTop;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (!isDragging) return;
+  clock.style.left = (e.clientX - offsetX) + "px";
+  clock.style.top = (e.clientY - offsetY) + "px";
+  clock.style.right = "auto";
+});
+
+document.addEventListener("mouseup", () => {
+  isDragging = false;
+});
+
+function goBack(){
+  const lastPage = pageHistory.pop();
+  if(!lastPage) return;
+
+  document.querySelectorAll("section").forEach(s => {
+    s.style.display = "none";
+  });
+
+  document.getElementById(lastPage).style.display = "block";
+}
 </script>
 <footer style="text-align:center;padding:20px;color:#94a3b8;">
   © 2026 HB Skills Academy  
