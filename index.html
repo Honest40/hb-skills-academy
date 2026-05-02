@@ -3311,47 +3311,53 @@ let isDragging = false;
 let offsetX = 0;
 let offsetY = 0;
 
-const box = document.getElementById("YOUR_ELEMENT_ID"); // change this
-
-// 🖱️ Desktop
-box.addEventListener("mousedown", startDrag);
-
-// 📱 Mobile
-box.addEventListener("touchstart", startDrag, { passive: false });
-
+// START (mouse + touch)
 function startDrag(e){
   isDragging = true;
 
   const event = e.touches ? e.touches[0] : e;
 
-  offsetX = event.clientX - box.offsetLeft;
-  offsetY = event.clientY - box.offsetTop;
+  const rect = clock.getBoundingClientRect();
 
-  document.addEventListener("mousemove", moveDrag);
-  document.addEventListener("touchmove", moveDrag, { passive: false });
+  offsetX = event.clientX - rect.left;
+  offsetY = event.clientY - rect.top;
 
-  document.addEventListener("mouseup", stopDrag);
-  document.addEventListener("touchend", stopDrag);
+  clock.style.transition = "none";
 }
 
+// MOVE (mouse + touch)
 function moveDrag(e){
   if(!isDragging) return;
 
   const event = e.touches ? e.touches[0] : e;
 
-  box.style.position = "absolute";
-  box.style.left = (event.clientX - offsetX) + "px";
-  box.style.top = (event.clientY - offsetY) + "px";
+  let x = event.clientX - offsetX;
+  let y = event.clientY - offsetY;
 
-  e.preventDefault(); // important for mobile scrolling issues
+  // prevent going off-screen
+  x = Math.max(0, Math.min(window.innerWidth - clock.offsetWidth, x));
+  y = Math.max(0, Math.min(window.innerHeight - clock.offsetHeight, y));
+
+  clock.style.left = x + "px";
+  clock.style.top = y + "px";
+  clock.style.right = "auto";
+  clock.style.bottom = "auto";
 }
 
+// STOP
 function stopDrag(){
   isDragging = false;
-
-  document.removeEventListener("mousemove", moveDrag);
-  document.removeEventListener("touchmove", moveDrag);
+  clock.style.transition = "0.2s ease";
 }
+
+// EVENTS
+clock.addEventListener("mousedown", startDrag);
+document.addEventListener("mousemove", moveDrag);
+document.addEventListener("mouseup", stopDrag);
+
+clock.addEventListener("touchstart", startDrag, {passive:true});
+document.addEventListener("touchmove", moveDrag, {passive:false});
+document.addEventListener("touchend", stopDrag);
 function goBack(){
 
   // hide all sections
