@@ -824,18 +824,7 @@ body{
 .star.active {
   color: gold;
 }
-#clockBox{
-  position:fixed;
-  top:10px;
-  right:10px;
-  background:#0f172a;
-  color:white;
-  padding:8px 12px;
-  border-radius:10px;
-  font-size:14px;
-  z-index:99999;
-  box-shadow:0 5px 15px rgba(0,0,0,0.3);
-}
+
 
 /* Lesson Header Bar */
 .lesson-nav-bar {
@@ -868,24 +857,7 @@ body{
     color: white;
 }
 
-.draggable-clock{
-  position:fixed;
-  top:10px;
-  right:10px;
-  background:#0f172a;
-  color:white;
-  padding:10px 14px;
-  border-radius:12px;
-  font-size:14px;
-  z-index:99999;
-  box-shadow:0 8px 20px rgba(0,0,0,0.3);
-  cursor:move;
-  user-select:none;
-  resize: both;
-  overflow:auto;
-  min-width:120px;
-  min-height:40px;
-}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -3280,84 +3252,8 @@ window.prevLesson = function(){
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
-function updateClock(){
-  const now = new Date();
 
-  // 🔥 Short months (Jan, Feb, Jun etc.)
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-  const day = now.getDate();
-  const month = months[now.getMonth()];
-  const year = now.getFullYear();
-
-  // 🔥 24-hour time format
-  let hours = now.getHours();
-  let minutes = now.getMinutes();
-
-  if(minutes < 10) minutes = "0" + minutes;
-  if(hours < 10) hours = "0" + hours;
-
-  const time = hours + ":" + minutes;
-
-  document.getElementById("clockBox").innerText =
-    "📅 " + day + " " + month + " " + year + " ⏰ " + time;
-}
-
-setInterval(updateClock, 1000);
-updateClock();
-const clock = document.getElementById("clockBox");
-
-let isDragging = false;
-let offsetX = 0;
-let offsetY = 0;
-
-// START (mouse + touch)
-function startDrag(e){
-  isDragging = true;
-
-  const event = e.touches ? e.touches[0] : e;
-
-  const rect = clock.getBoundingClientRect();
-
-  offsetX = event.clientX - rect.left;
-  offsetY = event.clientY - rect.top;
-
-  clock.style.transition = "none";
-}
-
-// MOVE (mouse + touch)
-function moveDrag(e){
-  if(!isDragging) return;
-
-  const event = e.touches ? e.touches[0] : e;
-
-  let x = event.clientX - offsetX;
-  let y = event.clientY - offsetY;
-
-  // prevent going off-screen
-  x = Math.max(0, Math.min(window.innerWidth - clock.offsetWidth, x));
-  y = Math.max(0, Math.min(window.innerHeight - clock.offsetHeight, y));
-
-  clock.style.left = x + "px";
-  clock.style.top = y + "px";
-  clock.style.right = "auto";
-  clock.style.bottom = "auto";
-}
-
-// STOP
-function stopDrag(){
-  isDragging = false;
-  clock.style.transition = "0.2s ease";
-}
-
-// EVENTS
-clock.addEventListener("mousedown", startDrag);
-document.addEventListener("mousemove", moveDrag);
-document.addEventListener("mouseup", stopDrag);
-
-clock.addEventListener("touchstart", startDrag, {passive:true});
-document.addEventListener("touchmove", moveDrag, {passive:false});
-document.addEventListener("touchend", stopDrag);
 function goBack(){
 
   // hide all sections
