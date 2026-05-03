@@ -3290,6 +3290,199 @@ function goBack(){
 <button class="whatsapp-btn" onclick="openWhatsApp()">
   💬 Chat on WhatsApp
 </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HB Skills AI</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+}
+
+/* floating button */
+#aiBtn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  border:none;
+  background:#2563eb;
+  color:white;
+  font-size:24px;
+  cursor:pointer;
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+
+/* chat box */
+#aiBox{
+  position:fixed;
+  bottom:90px;
+  right:20px;
+  width:340px;
+  height:450px;
+  background:#111827;
+  border-radius:15px;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 15px 40px rgba(0,0,0,0.5);
+}
+
+/* header */
+.header{
+  background:#2563eb;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:bold;
+}
+
+/* messages */
+#messages{
+  flex:1;
+  padding:10px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.msg{
+  padding:10px;
+  border-radius:10px;
+  max-width:80%;
+  font-size:14px;
+}
+
+.user{
+  background:#2563eb;
+  align-self:flex-end;
+}
+
+.ai{
+  background:#1f2937;
+  align-self:flex-start;
+}
+
+/* input */
+.inputBox{
+  display:flex;
+  border-top:1px solid #374151;
+}
+
+input{
+  flex:1;
+  padding:10px;
+  border:none;
+  outline:none;
+  background:#0b1220;
+  color:white;
+}
+
+button.send{
+  background:#2563eb;
+  border:none;
+  padding:10px 15px;
+  color:white;
+  cursor:pointer;
+}
+
+/* mobile */
+@media(max-width:500px){
+  #aiBox{
+    width:95%;
+    right:2.5%;
+    height:80%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<button id="aiBtn">🤖</button>
+
+<div id="aiBox">
+
+  <div class="header">
+    <span>HB Skills AI</span>
+    <button onclick="toggleAI()" style="background:none;border:none;color:white;font-size:18px;">✖</button>
+  </div>
+
+  <div id="messages"></div>
+
+  <div class="inputBox">
+    <input id="input" placeholder="Ask anything...">
+    <button class="send" onclick="send()">➤</button>
+  </div>
+
+</div>
+
+<script>
+function toggleAI(){
+  const box = document.getElementById("aiBox");
+  box.style.display = box.style.display === "flex" ? "none" : "flex";
+}
+
+document.getElementById("aiBtn").onclick = toggleAI;
+
+function addMsg(text,type){
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
+
+  const box = document.getElementById("messages");
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function send(){
+  const input = document.getElementById("input");
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  addMsg(text,"user");
+  input.value = "";
+
+  addMsg("Typing...","ai");
+
+  try{
+    const res = await fetch("https://hb-skills-academy-2.onrender.com/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message:text})
+    });
+
+    const data = await res.json();
+
+    document.getElementById("messages").lastChild.remove();
+
+    addMsg(data.reply || "No response","ai");
+
+  }catch(e){
+    document.getElementById("messages").lastChild.remove();
+    addMsg("Server error","ai");
+  }
+}
+
+/* ENTER key support */
+document.getElementById("input").addEventListener("keypress",function(e){
+  if(e.key === "Enter"){
+    send();
+  }
+});
+</script>
 
 </body>
 </html>
+
